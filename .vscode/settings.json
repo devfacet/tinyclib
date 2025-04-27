@@ -7,9 +7,15 @@
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
   "cSpell.words": [
+    "armv",
     "CMSIS",
     "ctest",
-    "tinyclib"
+    "Dryrun",
+    "eabi",
+    "libnewlib",
+    "noninteractive",
+    "tinyclib",
+    "trunc"
   ],
   "files.associations": {
     ".clang-format": "yaml",

@@ -1,0 +1,25 @@
+# Example usage:
+# Build:
+#   docker buildx build --platform linux/arm/v6 -f scripts/tests/docker/Dockerfile.armv6 -t test:armv6 . --load
+# Run:
+#   docker run --rm -it --platform linux/arm/v6 test:armv6
+
+# Base
+FROM arm32v6/alpine:latest AS base
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    apk update && apk add --no-cache \
+        build-base clang cmake ninja-build lld \
+        git ca-certificates \
+        binutils-arm-none-eabi \
+        gcc-arm-none-eabi g++-arm-none-eabi \
+        newlib-arm-none-eabi && \
+    ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja
+
+# Build
+FROM base AS build
+COPY . /test
+WORKDIR /test
+RUN cmake --workflow --preset default
+
+ENTRYPOINT []
+CMD ["ctest", "--preset", "default"]
