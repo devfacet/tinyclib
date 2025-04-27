@@ -14,7 +14,8 @@
     "eabi",
     "libnewlib",
     "noninteractive",
-    "tinyclib"
+    "tinyclib",
+    "trunc"
   ],
   "files.associations": {
     ".clang-format": "yaml",
