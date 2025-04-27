@@ -1,0 +1,17 @@
+{
+  "[c]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-vscode.cpptools"
+  },
+  "cSpell.words": [
+    "CMSIS",
+    "ctest",
+    "tinyclib"
+  ],
+  "files.associations": {
+    ".clang-format": "yaml",
+  }
+}
