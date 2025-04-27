@@ -83,14 +83,14 @@ jobs:
           #   tag: tinyclib:arm64
           #   test: arm64
 
-          - platform: linux/arm/v8
+          - platform: linux/arm64/v8
             dockerfile: Dockerfile.armv8
             tag: tinyclib:armv8
             test: armv8
 
     steps:
       - name: Docker Setup QEMU
-        if: matrix.platform != 'linux/arm64'
+        if: matrix.platform != 'linux/arm64' && matrix.platform != 'linux/arm64/v8'
         uses: docker/setup-qemu-action@v3.6.0 # v3.6.0 - latest as of 2025-04-27
         with:
           platforms: all
