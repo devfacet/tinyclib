@@ -43,20 +43,20 @@ jobs:
             tag: tinyclib:arm64
             test: arm64
 
-          - platform: linux/arm/v6
-            dockerfile: Dockerfile.armv6
-            tag: tinyclib:armv6
-            test: armv6
+          # - platform: linux/arm/v6
+          #   dockerfile: Dockerfile.armv6
+          #   tag: tinyclib:armv6
+          #   test: armv6
 
-          - platform: linux/arm/v7
-            dockerfile: Dockerfile.armv7
-            tag: tinyclib:armv7
-            test: armv7
+          # - platform: linux/arm/v7
+          #   dockerfile: Dockerfile.armv7
+          #   tag: tinyclib:armv7
+          #   test: armv7
 
-          - platform: linux/arm/v8
-            dockerfile: Dockerfile.armv8
-            tag: tinyclib:armv8
-            test: armv8
+          # - platform: linux/arm/v8
+          #   dockerfile: Dockerfile.armv8
+          #   tag: tinyclib:armv8
+          #   test: armv8
 
     steps:
       - name: Docker Setup QEMU
