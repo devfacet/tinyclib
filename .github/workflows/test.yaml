@@ -61,6 +61,7 @@ jobs:
       - name: Build images
         run: |
           docker images
+          docker buildx ls --no-trunc
           docker buildx build --platform ${{ matrix.platform }} -f scripts/tests/docker/${{ matrix.dockerfile }} -t ${{ matrix.tag }} . --load
           docker images
   
@@ -78,23 +79,24 @@ jobs:
     strategy:
       matrix:
         include:
-          # - platform: linux/arm64
-          #   dockerfile: Dockerfile.arm64
-          #   tag: tinyclib:arm64
-          #   test: arm64
+          - platform: linux/arm64
+            dockerfile: Dockerfile.arm64
+            tag: tinyclib:arm64
+            test: arm64
+            if: 1 == 2
+
+          - platform: linux/arm/v7
+            dockerfile: Dockerfile.armv7
+            tag: tinyclib:armv7
+            test: armv7
 
           - platform: linux/arm64/v8
             dockerfile: Dockerfile.armv8
             tag: tinyclib:armv8
             test: armv8
+            if: 1 == 2
 
     steps:
-      - name: Docker Setup QEMU
-        if: matrix.platform != 'linux/arm64' && matrix.platform != 'linux/arm64/v8'
-        uses: docker/setup-qemu-action@v3.6.0 # v3.6.0 - latest as of 2025-04-27
-        with:
-          platforms: all
-
       - name: Docker Setup Buildx
         uses: docker/setup-buildx-action@v3.10.0 # v3.10.0 - latest as of 2025-04-27
 
@@ -109,6 +111,7 @@ jobs:
       - name: Build images
         run: |
           docker images
+          docker buildx ls --no-trunc
           docker buildx build --platform ${{ matrix.platform }} -f scripts/tests/docker/${{ matrix.dockerfile }} -t ${{ matrix.tag }} . --load
           docker images
 
