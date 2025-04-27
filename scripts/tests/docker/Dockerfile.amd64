@@ -1,0 +1,26 @@
+# Example usage:
+# Build:
+#   docker buildx build --platform linux/amd64 -f scripts/tests/docker/Dockerfile.amd64 -t test:amd64 . --load
+# Run:
+#   docker run --rm -it --platform linux/amd64 test:amd64
+
+# Base
+FROM ubuntu:latest AS base
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang \
+    cmake \
+    ninja-build \
+    lld \
+    git \
+    ca-certificates
+
+# Build
+FROM base AS build
+COPY . /test
+WORKDIR /test
+RUN cmake --workflow --preset default
+
+ENTRYPOINT []
+CMD ["ctest", "--preset", "default"]
