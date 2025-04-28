@@ -1,95 +1,102 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(tinyclib LANGUAGES C)
+project(tinyclib VERSION 0.1.0 LANGUAGES C)
 
-# Set the output directories for libraries and executables
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Set the output directories
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
-# Set the C standard to C11 and fallback to C99 if not supported
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
-include(CheckCCompilerFlag)
-check_c_compiler_flag("-std=c11" COMPILER_SUPPORTS_C11)
-if(NOT COMPILER_SUPPORTS_C11)
-    message(WARNING "C11 is not supported by the compiler. Falling back to C99.")
-    set(CMAKE_C_STANDARD 99)
-endif()
+# Sources
+file(GLOB SOURCES CONFIGURE_DEPENDS src/*.c)
 
-# Add include directories
-include_directories(${CMAKE_SOURCE_DIR}/include)
+# Add the library (BUILD_SHARED_LIBS is handled by CMake)
+add_library(tinyclib ${SOURCES})
 
-# Source files
-set(SOURCES
-    src/tl_app.c
-    src/tl_config.c
-    src/tl_error.c
-    src/tl_test.c
+# Set the C standard to C11 for now
+set_property(TARGET tinyclib PROPERTY C_STANDARD 11)
+set_property(TARGET tinyclib PROPERTY C_STANDARD_REQUIRED ON)
+set_property(TARGET tinyclib PROPERTY C_EXTENSIONS OFF)
+
+# Set include directories for build and install
+target_include_directories(
+  tinyclib
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
-# Header files
-set(HEADERS
-    include/tl_app.h
-    include/tl_config.h
-    include/tl_constants.h
-    include/tl_debug.h
-    include/tl_error.h
-    include/tl_test.h
+# Install targets and headers
+include(GNUInstallDirs)
+
+install(
+  TARGETS tinyclib
+  EXPORT tinyclibTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Create a static library
-add_library(tinyclib STATIC ${SOURCES} ${HEADERS})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# Fetch dependencies
-include(FetchContent)
+# Package configuration
+include(CMakePackageConfigHelpers)
 
-# Fetch Unity test framework
-FetchContent_Declare(
-    Unity
-    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-    GIT_TAG v2.6.1
+configure_package_config_file(
+  cmake/tinyclibConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/tinyclibConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tinyclib
 )
-FetchContent_GetProperties(Unity)
-if(NOT Unity_POPULATED)
-    FetchContent_MakeAvailable(Unity)
-    set(Unity_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/unity-src)
-    if(NOT TARGET Unity)
-        add_library(Unity STATIC ${Unity_SOURCE_DIR}/src/unity.c)
-        target_include_directories(Unity PUBLIC ${Unity_SOURCE_DIR}/src)
-    endif()
-endif()
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/tinyclibConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/tinyclibConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/tinyclibConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tinyclib
+)
+
+install(
+  EXPORT tinyclibTargets
+  FILE tinyclibTargets.cmake
+  NAMESPACE tinyclib::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tinyclib
+)
+
+# Add a namespace alias for modern linking
+add_library(tinyclib::tinyclib ALIAS tinyclib)
+
+# Support shared libraries
+set_target_properties(tinyclib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Build tests
-option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
-    enable_testing()
+  include(CTest)
+  include(FetchContent)
 
-    include_directories(${unity_SOURCE_DIR}/src)
+  # FetchContent for Unity testing framework
+  FetchContent_Declare(
+      Unity
+      GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+      GIT_TAG v2.6.1
+  )
+  FetchContent_MakeAvailable(Unity)
+  FetchContent_GetProperties(Unity)
 
-    # Add test executable for tl_app
-    add_executable(tl_app_test tests/arch/generic/tl_app_test.c)
-    target_link_libraries(tl_app_test Unity tinyclib)
-    add_test(NAME tl_app_test COMMAND tl_app_test)
+  if(NOT TARGET Unity)
+      add_library(Unity STATIC ${unity_SOURCE_DIR}/src/unity.c)
+  endif()
+  target_include_directories(Unity PUBLIC ${unity_SOURCE_DIR}/src)
 
-    # Add test executable for tl_config
-    add_executable(tl_config_test tests/arch/generic/tl_config_test.c)
-    target_link_libraries(tl_config_test Unity tinyclib)
-    add_test(NAME tl_config_test COMMAND tl_config_test)
-
-    # Add test executable for tl_debug
-    add_executable(tl_debug_test tests/arch/generic/tl_debug_test.c)
-    target_link_libraries(tl_debug_test Unity tinyclib)
-    add_test(NAME tl_debug_test COMMAND tl_debug_test)
-
-    # Add test executable for tl_error
-    add_executable(tl_error_test tests/arch/generic/tl_error_test.c)
-    target_link_libraries(tl_error_test Unity tinyclib)
-    add_test(NAME tl_error_test COMMAND tl_error_test)
-
-    # Add test executable for tl_test
-    add_executable(tl_test_test tests/arch/generic/tl_test_test.c)
-    target_link_libraries(tl_test_test Unity tinyclib)
-    add_test(NAME tl_test_test COMMAND tl_test_test)
+  enable_testing()
+  foreach(t app config debug error test)
+    add_executable(tl_${t}_test tests/arch/generic/tl_${t}_test.c)
+    target_link_libraries(tl_${t}_test Unity tinyclib)
+    add_test(NAME tl_${t}_test COMMAND tl_${t}_test)
+  endforeach()
 endif()
