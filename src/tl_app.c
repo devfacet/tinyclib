@@ -13,7 +13,7 @@ static char **args = NULL;
 void tl_init_app(int argc, char *argv[]) {
     tl_parse_args(argc, argv);
     if (tl_get_flag("--debug-level")) {
-        tl_set_debug_level(atoi(tl_get_flag("--debug-level")));
+        tl_set_debug_level((int)strtol(tl_get_flag("--debug-level"), NULL, 10));
     }
 }
 

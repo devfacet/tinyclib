@@ -22,7 +22,7 @@
  *
  * @note Available for all ARM architectures.
  */
-#if defined(__ARM_ARCH)
+#ifdef __ARM_ARCH
 #define TL_CMSIS_DSP_AVAILABLE 1
 #else
 #define TL_CMSIS_DSP_AVAILABLE 0

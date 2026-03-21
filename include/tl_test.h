@@ -13,6 +13,6 @@
  *
  * @return The difference between the two timespec structures in nanoseconds.
  */
-long long tl_timespec_diff_ns(struct timespec *start, struct timespec *end);
+long long tl_timespec_diff_ns(const struct timespec *start, const struct timespec *end);
 
 #endif // TL_TEST_H
