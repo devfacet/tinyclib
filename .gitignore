@@ -1,11 +1,14 @@
 .DS_Store
-*.o
-.so
-*.dylib
-build
+*log*.txt
 
+/tmp
+/build
+
+# VSCode
 .vscode/*
 !.vscode/c_cpp_properties.json
+!.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/tasks.json
+

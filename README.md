@@ -1,12 +1,15 @@
 # tinyclib - A tiny C library
 
-tinyclib is a tiny C library for building applications across various platforms, 
+tinyclib is a tiny C library for building applications across various platforms,
 from server-grade hardware to desktops, mobile, and embedded devices.
 
 ## Requirements
 
 - [Clang](https://clang.llvm.org/) or similar C compiler
 - [CMake](https://cmake.org/)
+- [Ninja](https://github.com/ninja-build/ninja)
+
+See [mise.toml](mise.toml) for exact versions used.
 
 ### Recommended tools
 
@@ -17,9 +20,8 @@ from server-grade hardware to desktops, mobile, and embedded devices.
 ## Installation
 
 ```shell
-git clone https://github.com/devfacet/tinyclib.git
-cd tinyclib/
-cmake --workflow --preset default
+make configure
+make build
 ```
 
 ## Usage
@@ -27,7 +29,7 @@ cmake --workflow --preset default
 ## Test
 
 ```shell
-ctest --preset default
+make test
 ```
 
 ## Contributing
@@ -36,5 +38,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 
-Licensed under The MIT License (MIT)  
-For the full copyright and license information, please view the LICENSE.txt file.
+Licensed under The MIT License (MIT)\
+For the full copyright and license information, please view the LICENSE.txt
+file.
