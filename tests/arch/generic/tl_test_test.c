@@ -10,7 +10,7 @@ void tearDown(void) {
     // Teardown code if needed
 }
 
-void test_tl_timespec_diff_ns(void) {
+static void test_tl_timespec_diff_ns(void) {
     struct timespec start = {.tv_sec = 1, .tv_nsec = 500000000};
     struct timespec end = {.tv_sec = 2, .tv_nsec = 200000000};
 

@@ -7,14 +7,9 @@
 #include <string.h>
 
 void tl_error_set(TLError *error, TLErrorCode code, const char *message, ...) {
-    // Check and initialize error
+    // Ignore if error is NULL
     if (!error) {
-        error = malloc(sizeof(TLError));
-        if (!error) {
-            return;
-        }
-        error->message = NULL;
-        error->message_size = 0;
+        return;
     }
 
     // Set error code and message

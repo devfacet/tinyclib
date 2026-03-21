@@ -6,4 +6,5 @@ BreakBeforeBraces: Attach
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
-ColumnLimit: 0
+ColumnLimit: 120
+AlignEscapedNewlines: Left

@@ -1,6 +1,7 @@
 # Changelog
 
-See https://common-changelog.org for commit guidelines.
+See https://common-changelog.org for commit guidelines and https://semver.org
+for versioning.
 
 ## v0.1.1 - 2025-04-27
 

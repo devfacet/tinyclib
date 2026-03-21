@@ -12,7 +12,7 @@
  * @param level The debug level.
  * @param fmt The format string.
  * @param ... The arguments.
- * 
+ *
  * @return void
  */
 #define TL_DEBUG_PRINT(level, fmt, ...)          \

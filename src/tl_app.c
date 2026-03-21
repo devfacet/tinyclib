@@ -13,7 +13,7 @@ static char **args = NULL;
 void tl_init_app(int argc, char *argv[]) {
     tl_parse_args(argc, argv);
     if (tl_get_flag("--debug-level")) {
-        tl_set_debug_level(atoi(tl_get_flag("--debug-level")));
+        tl_set_debug_level((int)strtol(tl_get_flag("--debug-level"), NULL, 10));
     }
 }
 
@@ -25,7 +25,8 @@ void tl_parse_args(int argc, char *argv[]) {
 bool tl_lookup_flag(const char *flag) {
     for (int i = 1; i < arg_count; i++) {
         // If the argument starts with the flag and is followed by either '\0' or '=' then
-        if (strncmp(args[i], flag, strlen(flag)) == 0 && (args[i][strlen(flag)] == '\0' || args[i][strlen(flag)] == '=')) {
+        if (strncmp(args[i], flag, strlen(flag)) == 0 &&
+            (args[i][strlen(flag)] == '\0' || args[i][strlen(flag)] == '=')) {
             return true;
         }
     }
