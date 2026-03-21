@@ -1,0 +1,10 @@
+# mise settings set experimental true
+# mise install
+
+[tools]
+cmake = "4.3.0"
+"conda:make" = "4.4.1"
+ninja = "1.13.2"
+"pipx:clang-format" = "latest"
+"pipx:clang-tidy" = "latest"
+"pipx:cppcheck" = "latest"

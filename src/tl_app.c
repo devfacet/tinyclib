@@ -25,7 +25,8 @@ void tl_parse_args(int argc, char *argv[]) {
 bool tl_lookup_flag(const char *flag) {
     for (int i = 1; i < arg_count; i++) {
         // If the argument starts with the flag and is followed by either '\0' or '=' then
-        if (strncmp(args[i], flag, strlen(flag)) == 0 && (args[i][strlen(flag)] == '\0' || args[i][strlen(flag)] == '=')) {
+        if (strncmp(args[i], flag, strlen(flag)) == 0 &&
+            (args[i][strlen(flag)] == '\0' || args[i][strlen(flag)] == '=')) {
             return true;
         }
     }

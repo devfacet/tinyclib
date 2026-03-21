@@ -1,19 +1,22 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(tinyclib VERSION 0.1.0 LANGUAGES C)
+project(tinyclib VERSION 0.1.1 LANGUAGES C)
 
-# Set the output directories
+# Settings
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
+# Dependencies
+include(FetchContent)
 # Sources
 file(GLOB SOURCES CONFIGURE_DEPENDS src/*.c)
 
 # Add the library (BUILD_SHARED_LIBS is handled by CMake)
 add_library(tinyclib ${SOURCES})
 
-# Set the C standard to C11 for now
+# Set the C standard
 set_property(TARGET tinyclib PROPERTY C_STANDARD 11)
 set_property(TARGET tinyclib PROPERTY C_STANDARD_REQUIRED ON)
 set_property(TARGET tinyclib PROPERTY C_EXTENSIONS OFF)
@@ -81,22 +84,22 @@ if(BUILD_TESTS)
 
   # FetchContent for Unity testing framework
   FetchContent_Declare(
-      Unity
-      GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-      GIT_TAG v2.6.1
+    Unity
+    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+    GIT_TAG v2.6.1
   )
   FetchContent_MakeAvailable(Unity)
   FetchContent_GetProperties(Unity)
 
   if(NOT TARGET Unity)
-      add_library(Unity STATIC ${unity_SOURCE_DIR}/src/unity.c)
+    add_library(Unity STATIC ${unity_SOURCE_DIR}/src/unity.c)
   endif()
   target_include_directories(Unity PUBLIC ${unity_SOURCE_DIR}/src)
 
   enable_testing()
   foreach(t app config debug error test)
     add_executable(tl_${t}_test tests/arch/generic/tl_${t}_test.c)
-    target_link_libraries(tl_${t}_test Unity tinyclib)
+    target_link_libraries(tl_${t}_test unity tinyclib)
     add_test(NAME tl_${t}_test COMMAND tl_${t}_test)
   endforeach()
 endif()
