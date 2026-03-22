@@ -98,7 +98,7 @@ if(BUILD_TESTS)
 
   enable_testing()
   foreach(t app config debug error test)
-    add_executable(tl_${t}_test tests/arch/generic/tl_${t}_test.c)
+    add_executable(tl_${t}_test tests/unit/tl_${t}_test.c)
     target_link_libraries(tl_${t}_test unity tinyclib)
     add_test(NAME tl_${t}_test COMMAND tl_${t}_test)
   endforeach()

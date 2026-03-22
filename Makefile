@@ -7,7 +7,7 @@ CPPCHECK := $(shell if command -v cppcheck >/dev/null 2>&1; then echo cppcheck; 
 CLANG_TIDY_EXTRA_ARGS := $(shell if [ "$$(uname)" = "Darwin" ]; then echo "--extra-arg=--sysroot=$$(xcrun --show-sdk-path)"; fi)
 
 SRC_FILES := src/*.c include/*.h
-TEST_FILES := tests/arch/generic/*.c
+TEST_FILES := tests/unit/*.c
 ALL_FILES := $(SRC_FILES) $(TEST_FILES)
 
 help: ## Show available make targets
@@ -18,14 +18,15 @@ configure: ## Configure cmake
 	cmake --preset default
 
 build: ## Build the project
+	@test -d "$(BUILD_DIR)" || cmake --preset default
 	cmake --build --preset default
 
 clean: ## Remove build directory
 	@test -n "$(CURDIR)" && [ "$(CURDIR)" != "/" ]
 	rm -rf "$(CURDIR)/$(BUILD_DIR)"
 
-test: ## Build and run tests
-	cmake --workflow --preset default
+test: ## Run tests
+	ctest --preset default
 
 format: ## Check code formatting
 	@test -n "$(CLANG_FORMAT)" || { echo "error: clang-format not found"; exit 1; }
@@ -34,7 +35,7 @@ format: ## Check code formatting
 lint: ## Check code linting
 	@test -n "$(CLANG_TIDY)" || { echo "error: clang-tidy not found"; exit 1; }
 	$(CLANG_TIDY) -p $(BUILD_DIR) $(CLANG_TIDY_EXTRA_ARGS) \
-		--header-filter="^$(CURDIR)/(src|include|tests)/" src/*.c tests/arch/generic/*.c
+		--header-filter="^$(CURDIR)/(src|include|tests)/" src/*.c tests/unit/*.c
 
 check: ## Static analysis
 	@test -n "$(CPPCHECK)" || { echo "error: cppcheck not found"; exit 1; }

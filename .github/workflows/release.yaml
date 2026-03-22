@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Check release tag
         id: check-tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             console.log('github.event_name', '${{ github.event_name }}')
@@ -51,7 +51,7 @@ jobs:
 
       - name: Check tag semver
         id: check-tag-semver
-        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0 - latest as of 2025-04-27
+        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0 - latest as of 2026-03-21
         if: ${{ steps.check-tag.outputs.RELEASE_TAG != '' }}
         with:
           version: ${{ steps.check-tag.outputs.RELEASE_TAG }}
@@ -63,7 +63,7 @@ jobs:
     if: ${{ needs.check.outputs.RELEASE_TAG != '' }}
     steps:
       - name: Make a release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2 - latest as of 2025-04-27
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1 - latest as of 2026-03-21
         if: github.event.inputs.dryRun != 'true'
         with:
           tag_name: ${{ needs.check.outputs.RELEASE_TAG }}

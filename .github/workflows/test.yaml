@@ -28,8 +28,44 @@ on:
         default: test
 
 jobs:
-  
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install mise
+        run: |
+          curl https://mise.run | sh
+          mise settings experimental=true
+
+      - name: Trust workspace
+        run: mise trust
+
+      - name: Install dependencies
+        run: mise exec -- mise install
+
+      - name: Configure project
+        run: mise exec -- make configure
+
+      - name: Run formatting checks
+        run: mise exec -- make format
+
+      - name: Run lint
+        run: mise exec -- make lint
+
+      - name: Run static analysis
+        run: mise exec -- make check
+
+      - name: Build project
+        run: mise exec -- make build
+
+      - name: Run tests
+        run: mise exec -- make test
+
   test-amd64:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -42,15 +78,15 @@ jobs:
     steps:
       - name: Docker Setup QEMU
         if: matrix.platform != 'linux/amd64'
-        uses: docker/setup-qemu-action@v3.6.0 # v3.6.0 - latest as of 2025-04-27
+        uses: docker/setup-qemu-action@v4 # v4 - latest as of 2026-03-21
         with:
           platforms: all
 
       - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v3.10.0 # v3.10.0 - latest as of 2025-04-27
+        uses: docker/setup-buildx-action@v4 # v4 - latest as of 2026-03-21
 
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2 - latest as of 2025-04-27
+        uses: actions/checkout@v6
 
       - name: Create Buildx
         run: |
@@ -74,6 +110,7 @@ jobs:
           done
 
   test-arm64:
+    needs: test
     runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
@@ -100,10 +137,10 @@ jobs:
 
     steps:
       - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v3.10.0 # v3.10.0 - latest as of 2025-04-27
+        uses: docker/setup-buildx-action@v4 # v4 - latest as of 2026-03-21
 
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2 - latest as of 2025-04-27
+        uses: actions/checkout@v6
 
       - name: Create Buildx
         run: |
