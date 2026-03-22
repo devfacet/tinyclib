@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Check pull request
         id: check-pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           retries: 3
           script: |
@@ -87,28 +87,28 @@ jobs:
             core.setOutput('PULL_SHA', pullSHA)
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         if: ${{ steps.check-pr.outputs.RELEASE_TYPE != '' }}
         with:
           fetch-depth: 0 # Ref: https://github.com/actions/checkout/issues/100
 
       - name: Get current tag
         id: current-tag
-        uses: "WyriHaximus/github-action-get-previous-tag@04e8485ecb6487243907e330d522ff60f02283ce" # v1.4.0 - latest as of 2025-04-27
+        uses: "WyriHaximus/github-action-get-previous-tag@61819f33034117e6c686e6a31dba995a85afc9de" # v2.0.0 - latest as of 2026-03-21
         if: ${{ steps.check-pr.outputs.RELEASE_TYPE != '' }}
         with:
           fallback: v0.0.0
 
       - name: Determine next semver version
         id: next-semver-version
-        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0 - latest as of 2025-04-27
+        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0 - latest as of 2026-03-21
         if: ${{ steps.check-pr.outputs.RELEASE_TYPE != '' }}
         with:
           version: ${{ steps.current-tag.outputs.tag }}
 
       - name: Determine next tag
         id: next-tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: ${{ steps.check-pr.outputs.RELEASE_TYPE != '' }}
         with:
           script: |
@@ -141,7 +141,7 @@ jobs:
     steps:
       - name: Create tag
         id: create-tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.PAT_WORKFLOW }}
           retries: 3
