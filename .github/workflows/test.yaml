@@ -38,33 +38,31 @@ jobs:
       - name: Install mise
         run: |
           curl https://mise.run | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/mise" --version
           mise settings experimental=true
 
       - name: Trust workspace
         run: mise trust
 
       - name: Install dependencies
-        run: mise install
+        run: mise exec -- mise install
 
       - name: Configure project
-        run: make configure
+        run: mise exec -- make configure
 
       - name: Run formatting checks
-        run: make format
+        run: mise exec -- make format
 
       - name: Run lint
-        run: make lint
+        run: mise exec -- make lint
 
       - name: Run static analysis
-        run: make check
+        run: mise exec -- make check
 
       - name: Build project
-        run: make build
+        run: mise exec -- make build
 
       - name: Run tests
-        run: make test
+        run: mise exec -- make test
 
   test-amd64:
     needs: test
