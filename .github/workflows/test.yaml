@@ -28,8 +28,45 @@ on:
         default: test
 
 jobs:
-  
+
+  test-native:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install mise
+        run: |
+          curl https://mise.run | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/mise" --version
+
+      - name: Trust workspace
+        run: mise trust
+
+      - name: Install dependencies
+        run: mise install
+
+      - name: Configure project
+        run: make configure
+
+      - name: Run formatting checks
+        run: make format
+
+      - name: Run lint
+        run: make lint
+
+      - name: Run static analysis
+        run: make check
+
+      - name: Build project
+        run: make build
+
+      - name: Run tests
+        run: make test
+
   test-amd64:
+    needs: test-native
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -74,6 +111,7 @@ jobs:
           done
 
   test-arm64:
+    needs: test-native
     runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
