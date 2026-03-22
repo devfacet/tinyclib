@@ -40,6 +40,7 @@ jobs:
           curl https://mise.run | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/mise" --version
+          mise settings experimental=true
 
       - name: Trust workspace
         run: mise trust
