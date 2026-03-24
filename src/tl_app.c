@@ -7,8 +7,8 @@
 #include <string.h>
 
 // Init vars
-static int arg_count = 0;
-static char **args = NULL;
+static int    arg_count = 0;
+static char **args      = NULL;
 
 void tl_init_app(int argc, char *argv[]) {
     tl_parse_args(argc, argv);
@@ -19,7 +19,7 @@ void tl_init_app(int argc, char *argv[]) {
 
 void tl_parse_args(int argc, char *argv[]) {
     arg_count = argc;
-    args = argv;
+    args      = argv;
 }
 
 bool tl_lookup_flag(const char *flag) {

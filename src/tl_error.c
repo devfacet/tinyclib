@@ -17,7 +17,7 @@ void tl_error_set(TLError *error, TLErrorCode code, const char *message, ...) {
     // Clear previous error message
     if (error->message) {
         free((void *)error->message);
-        error->message = NULL;
+        error->message      = NULL;
         error->message_size = 0;
     }
 

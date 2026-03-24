@@ -1,4 +1,4 @@
-.PHONY: help install build clean test format lint check check-all fix
+.DEFAULT_GOAL := help
 
 BUILD_DIR := build
 CLANG_FORMAT := $(shell if command -v clang-format >/dev/null 2>&1; then echo clang-format; fi)
@@ -8,11 +8,16 @@ CLANG_TIDY_EXTRA_ARGS := $(shell if [ "$$(uname)" = "Darwin" ]; then echo "--ext
 
 SRC_FILES := src/*.c include/*.h
 TEST_FILES := tests/unit/*.c
-ALL_FILES := $(SRC_FILES) $(TEST_FILES)
+EXAMPLE_FILES := $(wildcard examples/*/*.c)
+ALL_FILES := $(SRC_FILES) $(TEST_FILES) $(EXAMPLE_FILES)
+
+.PHONY: help install build clean clean-bin test format lint check check-all fix
 
 help: ## Show available make targets
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Targets:"
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 configure: ## Configure cmake
 	cmake --preset default
@@ -24,6 +29,11 @@ build: ## Build the project
 clean: ## Remove build directory
 	@test -n "$(CURDIR)" && [ "$(CURDIR)" != "/" ]
 	rm -rf "$(CURDIR)/$(BUILD_DIR)"
+
+clean-bin: ## Remove built binaries from the build directory
+	@test -n "$(CURDIR)" && [ "$(CURDIR)" != "/" ]
+	@test -d "$(CURDIR)/$(BUILD_DIR)/bin" || exit 0
+	find "$(CURDIR)/$(BUILD_DIR)/bin" -mindepth 1 -delete
 
 test: ## Run tests
 	ctest --preset default
@@ -40,8 +50,8 @@ lint: ## Check code linting
 check: ## Static analysis
 	@test -n "$(CPPCHECK)" || { echo "error: cppcheck not found"; exit 1; }
 	$(CPPCHECK) --enable=warning,style,performance,portability --error-exitcode=1 \
-		--project=$(BUILD_DIR)/compile_commands.json --suppress=missingIncludeSystem \
-		-i$(BUILD_DIR)
+		--check-level=exhaustive --project=$(BUILD_DIR)/compile_commands.json \
+		--suppress=missingIncludeSystem -i$(BUILD_DIR)
 
 check-all: format lint check ## Run all checks
 

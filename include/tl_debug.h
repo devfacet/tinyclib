@@ -7,7 +7,8 @@
 #include <stdio.h>
 
 /**
- * @brief Prints the given message to stderr if the given debug level is greater or equal to the current debug level.
+ * @brief Prints the given message to stderr if the given debug level is greater or equal to the
+ * current debug level.
  *
  * @param level The debug level.
  * @param fmt The format string.

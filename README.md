@@ -17,14 +17,11 @@ See [mise.toml](mise.toml) for exact versions used.
 - [C/C++ for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
 - [CMake Tools for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
 
-## Installation
+## Build
 
 ```shell
-make configure
 make build
 ```
-
-## Usage
 
 ## Test
 
