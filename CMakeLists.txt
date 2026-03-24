@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(tinyclib VERSION 0.1.1 LANGUAGES C)
+project(tinyclib VERSION 0.1.2 LANGUAGES C)
 
 # Settings
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
