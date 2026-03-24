@@ -81,6 +81,13 @@ set_target_properties(tinyclib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(BUILD_TESTS)
   include(CTest)
   include(FetchContent)
+  set(TEST_TARGETS
+    tl_app_test
+    tl_config_test
+    tl_debug_test
+    tl_error_test
+    tl_test_test
+  )
 
   # FetchContent for Unity testing framework
   FetchContent_Declare(
@@ -97,9 +104,9 @@ if(BUILD_TESTS)
   target_include_directories(Unity PUBLIC ${unity_SOURCE_DIR}/src)
 
   enable_testing()
-  foreach(t app config debug error test)
-    add_executable(tl_${t}_test tests/unit/tl_${t}_test.c)
-    target_link_libraries(tl_${t}_test unity tinyclib)
-    add_test(NAME tl_${t}_test COMMAND tl_${t}_test)
+  foreach(t IN LISTS TEST_TARGETS)
+    add_executable(${t} tests/unit/${t}.c)
+    target_link_libraries(${t} unity tinyclib)
+    add_test(NAME ${t} COMMAND ${t})
   endforeach()
 endif()

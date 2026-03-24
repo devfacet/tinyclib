@@ -9,30 +9,27 @@
  * @brief Represents an error code.
  */
 typedef enum {
-    TL_ERROR_NONE = 0, // no error
-
-    TL_ERROR_INTERNAL = 10,        // internal error
-    TL_ERROR_NOT_FOUND = 11,       // not found
-    TL_ERROR_NOT_READY = 12,       // not ready
-    TL_ERROR_NOT_IMPLEMENTED = 13, // not implemented
-    TL_ERROR_NOT_SUPPORTED = 14,   // not supported
-    TL_ERROR_NOT_AVAILABLE = 15,   // not available
-
-    TL_ERROR_TIMEOUT = 20,           // timeout error
-    TL_ERROR_BUSY = 21,              // busy
-    TL_ERROR_IO = 22,                // I/O error
-    TL_ERROR_OUT_OF_RANGE = 23,      // out of range error
-    TL_ERROR_MEMORY_ALLOCATION = 24, // memory allocation error
-
-    TL_ERROR_INIT_FAILED = 30,         // initialization error
+    TL_ERROR_NONE                = 0,  // no error
+    TL_ERROR_INTERNAL            = 10, // internal error
+    TL_ERROR_NOT_FOUND           = 11, // not found
+    TL_ERROR_NOT_READY           = 12, // not ready
+    TL_ERROR_NOT_IMPLEMENTED     = 13, // not implemented
+    TL_ERROR_NOT_SUPPORTED       = 14, // not supported
+    TL_ERROR_NOT_AVAILABLE       = 15, // not available
+    TL_ERROR_TIMEOUT             = 20, // timeout error
+    TL_ERROR_BUSY                = 21, // busy
+    TL_ERROR_IO                  = 22, // I/O error
+    TL_ERROR_OUT_OF_RANGE        = 23, // out of range error
+    TL_ERROR_MEMORY_ALLOCATION   = 24, // memory allocation error
+    TL_ERROR_INIT_FAILED         = 30, // initialization error
     TL_ERROR_ALREADY_INITIALIZED = 31, // already initialized
-    TL_ERROR_NOT_INITIALIZED = 32,     // not initialized
-    TL_ERROR_INVALID_ARGUMENT = 33,    // invalid argument
-    TL_ERROR_INVALID_FUNCTION = 34,    // invalid function
-    TL_ERROR_INVALID_INSTANCE = 35,    // invalid instance
-    TL_ERROR_INVALID_SIZE = 36,        // invalid size
-    TL_ERROR_INVALID_TYPE = 37,        // invalid type
-    TL_ERROR_INVALID_VALUE = 38,       // invalid value
+    TL_ERROR_NOT_INITIALIZED     = 32, // not initialized
+    TL_ERROR_INVALID_ARGUMENT    = 33, // invalid argument
+    TL_ERROR_INVALID_FUNCTION    = 34, // invalid function
+    TL_ERROR_INVALID_INSTANCE    = 35, // invalid instance
+    TL_ERROR_INVALID_SIZE        = 36, // invalid size
+    TL_ERROR_INVALID_TYPE        = 37, // invalid type
+    TL_ERROR_INVALID_VALUE       = 38, // invalid value
 } TLErrorCode;
 
 /**
@@ -44,7 +41,7 @@ typedef enum {
  */
 typedef struct {
     TLErrorCode code;
-    size_t message_size;
+    size_t      message_size;
     const char *message;
 } TLError;
 

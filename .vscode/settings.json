@@ -24,6 +24,7 @@
     "ctest",
     "Dryrun",
     "eabi",
+    "endforeach",
     "libnewlib",
     "noninteractive",
     "tinyclib",
