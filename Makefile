@@ -11,6 +11,8 @@ TEST_FILES := tests/unit/*.c
 EXAMPLE_FILES := $(wildcard examples/*/*.c)
 ALL_FILES := $(SRC_FILES) $(TEST_FILES) $(EXAMPLE_FILES)
 
+PRESET ?= default
+
 .PHONY: help install build clean clean-bin test format lint check check-all fix
 
 help: ## Show available make targets
@@ -20,11 +22,11 @@ help: ## Show available make targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 configure: ## Configure cmake
-	cmake --preset default
+	cmake --preset $(PRESET)
 
 build: ## Build the project
-	@test -d "$(BUILD_DIR)" || cmake --preset default
-	cmake --build --preset default
+	@test -d "$(BUILD_DIR)" || cmake --preset $(PRESET)
+	cmake --build --preset $(PRESET)
 
 clean: ## Remove build directory
 	@test -n "$(CURDIR)" && [ "$(CURDIR)" != "/" ]
