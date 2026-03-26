@@ -3,6 +3,16 @@
 See https://common-changelog.org for commit guidelines and https://semver.org
 for versioning.
 
+## v0.2.0 - 2026-03-25
+
+### Changed
+
+- Improve build (#10)
+
+### Added
+
+- Add space support to flags (#9)
+
 ## v0.1.2 - 2026-03-23
 
 ### Changed
