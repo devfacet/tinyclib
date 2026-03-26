@@ -36,9 +36,16 @@ bool tl_lookup_flag(const char *flag) {
 const char *tl_get_flag(const char *flag) {
     size_t flag_len = strlen(flag);
     for (int i = 1; i < arg_count; i++) {
-        // If the argument starts with the flag and is followed by '=' then
-        if (strncmp(args[i], flag, flag_len) == 0 && args[i][flag_len] == '=') {
-            return args[i] + flag_len + 1; // +1 to skip the '='
+        if (strncmp(args[i], flag, flag_len) != 0) {
+            continue;
+        }
+        // If the argument is followed by '=' then return the value after '='
+        if (args[i][flag_len] == '=') {
+            return args[i] + flag_len + 1;
+        }
+        // If the argument is an exact match and the next argument exists then return it
+        if (args[i][flag_len] == '\0' && i + 1 < arg_count) {
+            return args[i + 1];
         }
     }
     return NULL;
