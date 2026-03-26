@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.25)
 
 project(tinyclib VERSION 0.1.2 LANGUAGES C)
 
-# Settings
+# Settings and options
+option(TL_BUILD_TESTS "Build tinyclib tests" ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
@@ -78,7 +79,7 @@ add_library(tinyclib::tinyclib ALIAS tinyclib)
 set_target_properties(tinyclib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Build tests
-if(BUILD_TESTS)
+if(TL_BUILD_TESTS)
   include(CTest)
   include(FetchContent)
   set(TEST_TARGETS
@@ -96,12 +97,6 @@ if(BUILD_TESTS)
     GIT_TAG v2.6.1
   )
   FetchContent_MakeAvailable(Unity)
-  FetchContent_GetProperties(Unity)
-
-  if(NOT TARGET Unity)
-    add_library(Unity STATIC ${unity_SOURCE_DIR}/src/unity.c)
-  endif()
-  target_include_directories(Unity PUBLIC ${unity_SOURCE_DIR}/src)
 
   enable_testing()
   foreach(t IN LISTS TEST_TARGETS)
