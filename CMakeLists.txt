@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(tinyclib VERSION 0.2.0 LANGUAGES C)
 
 # Settings and options
-option(TL_BUILD_TESTS "Build tinyclib tests" ON)
+option(TL_BUILD_TESTS "Build tinyclib tests" ${PROJECT_IS_TOP_LEVEL})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
