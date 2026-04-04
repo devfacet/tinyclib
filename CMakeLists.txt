@@ -87,6 +87,7 @@ if(TL_BUILD_TESTS)
     tl_config_test
     tl_debug_test
     tl_error_test
+    tl_flag_test
     tl_test_test
   )
 
