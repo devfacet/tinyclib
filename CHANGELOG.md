@@ -3,6 +3,12 @@
 See https://common-changelog.org for commit guidelines and https://semver.org
 for versioning.
 
+## v0.2.1 - 2026-04-03
+
+### Fixed
+
+- Fix TL_BUILD_TESTS option (#12)
+
 ## v0.2.0 - 2026-03-25
 
 ### Changed
