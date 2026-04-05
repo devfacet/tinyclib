@@ -55,7 +55,7 @@ check: ## Static analysis
 		--check-level=exhaustive --project=$(BUILD_DIR)/compile_commands.json \
 		--suppress=missingIncludeSystem -i$(BUILD_DIR)
 
-check-all: format lint check ## Run all checks
+check-all: test format lint check ## Run all checks
 
 fix: ## Fix code formatting and linting issues
 	@test -n "$(CLANG_FORMAT)" || { echo "error: clang-format not found"; exit 1; }

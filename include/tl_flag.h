@@ -44,10 +44,12 @@ typedef struct {
 /**
  * @brief Parses the given command line arguments.
  *
- * Parses argv into flags. A flag is anything starting with "--". It can carry
- * a value written as --name=value, or as --name value in the next entry.
- * A bare "--" ends flag parsing; everything after it is a positional, even if
- * it starts with dashes. Any previously parsed state is thrown away first.
+ * Parses argv into flags and positionals. A flag is anything starting
+ * with "-" or "--" (e.g. "-h", "--help"). It can carry a value written as
+ * --name=value, or as --name value in the next entry. A bare "-" is a
+ * positional. A bare "--" ends flag parsing; everything after it is a
+ * positional, even if it starts with dashes. Any previously parsed state
+ * is thrown away first.
  *
  * @param argc The number of command line arguments.
  * @param argv The command line arguments.
@@ -124,8 +126,8 @@ const char *tl_get_flag_at(const char *flag, size_t index);
 /**
  * @brief Returns the number of positional arguments.
  *
- * Positionals are bare arguments (not starting with `--`) and everything
- * after a bare `--` terminator, in the order they appeared.
+ * Positionals are bare arguments (not starting with `-` or `--`) and
+ * everything after a bare `--` terminator, in the order they appeared.
  *
  * @return The positional argument count.
  */

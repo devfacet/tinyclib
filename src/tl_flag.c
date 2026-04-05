@@ -13,17 +13,39 @@ static char        *line_buf         = NULL;
 static char       **line_tokens      = NULL;
 
 /**
- * @brief Returns whether the token is a long flag (starts with "--" and has content).
+ * @brief Returns whether the token is a flag.
+ *
+ * A flag starts with "-" or "--" and is not a bare "-" or "--".
+ * A bare "-" is not a flag (it's a common stdin placeholder).
+ * A bare "--" is the positional terminator and is handled separately.
  */
-static bool is_long_flag(const char *s) {
-    return s != NULL && s[0] == '-' && s[1] == '-' && s[2] != '\0';
+static bool is_flag(const char *s) {
+    if (s == NULL || s[0] != '-' || s[1] == '\0') {
+        return false;
+    }
+    if (s[1] == '-' && s[2] == '\0') {
+        return false;
+    }
+    return true;
 }
 
 /**
  * @brief Returns whether the token is the bare "--" terminator.
  */
 static bool is_dash_dash(const char *s) {
-    return s != NULL && s[0] == '-' && s[1] == '-' && s[2] == '\0';
+    if (s == NULL) {
+        return false;
+    }
+    if (s[0] != '-') {
+        return false;
+    }
+    if (s[1] != '-') {
+        return false;
+    }
+    if (s[2] != '\0') {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -40,7 +62,7 @@ static bool flag_matches(const tl_flag_t *f, const char *name, size_t name_len) 
  * @brief Fills the flag and positional tables from a token list.
  *
  * The first token is the program name and is skipped. The rest are
- * sorted into flags (anything starting with "--") and positionals
+ * sorted into flags (anything starting with "-" or "--") and positionals
  * (everything else, plus anything after a bare "--").
  */
 static bool parse_tokens(char **tokens, int count) {
@@ -70,8 +92,8 @@ static bool parse_tokens(char **tokens, int count) {
             after_dd = true;
             continue;
         }
-        // Long flag
-        if (is_long_flag(tok)) {
+        // Flag
+        if (is_flag(tok)) {
             char *eq = strchr(tok, '=');
             if (eq) {
                 flags[flag_count].name     = tok;
@@ -81,7 +103,7 @@ static bool parse_tokens(char **tokens, int count) {
                 const char *value = NULL;
                 // Consume the next token as the value if it is not another flag
                 // and not the "--" terminator
-                if (i + 1 < count && !is_long_flag(tokens[i + 1]) && !is_dash_dash(tokens[i + 1])) {
+                if (i + 1 < count && !is_flag(tokens[i + 1]) && !is_dash_dash(tokens[i + 1])) {
                     value = tokens[i + 1];
                     i++;
                 }
@@ -95,6 +117,43 @@ static bool parse_tokens(char **tokens, int count) {
         // Positional
         positionals[positional_count++] = tok;
     }
+    return true;
+}
+
+/**
+ * @brief Reads one token from `line` starting at `*i` into `line_buf` at `*bi`.
+ *
+ * Stops at unquoted whitespace or end of line. Writes the NUL terminator.
+ * Returns true on success, false if a quoted string was never closed.
+ */
+static bool read_one_token(const char *line, size_t len, size_t *i, size_t *bi) {
+    bool in_quote = false;
+    while (*i < len) {
+        char c = line[*i];
+        if (!in_quote && (c == ' ' || c == '\t')) {
+            break;
+        }
+        if (c == '"') {
+            if (in_quote) {
+                in_quote = false;
+            } else {
+                in_quote = true;
+            }
+            (*i)++;
+            continue;
+        }
+        if (c == '\\' && *i + 1 < len) {
+            line_buf[(*bi)++] = line[*i + 1];
+            *i += 2;
+            continue;
+        }
+        line_buf[(*bi)++] = c;
+        (*i)++;
+    }
+    if (in_quote) {
+        return false;
+    }
+    line_buf[(*bi)++] = '\0';
     return true;
 }
 
@@ -131,31 +190,10 @@ static int tokenize_line(const char *line) {
         if (i >= len) {
             break;
         }
-        // Start a new token at the current buffer position
         line_tokens[n++] = &line_buf[bi];
-        bool in_quote    = false;
-        while (i < len) {
-            char c = line[i];
-            if (!in_quote && (c == ' ' || c == '\t')) {
-                break;
-            }
-            if (c == '"') {
-                in_quote = in_quote ? false : true;
-                i++;
-                continue;
-            }
-            if (c == '\\' && i + 1 < len) {
-                line_buf[bi++] = line[i + 1];
-                i += 2;
-                continue;
-            }
-            line_buf[bi++] = c;
-            i++;
+        if (!read_one_token(line, len, &i, &bi)) {
+            return -1;
         }
-        if (in_quote) {
-            return -1; // unterminated quoted string
-        }
-        line_buf[bi++] = '\0';
     }
     return (int)n;
 }
