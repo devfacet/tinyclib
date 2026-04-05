@@ -13,10 +13,20 @@ static char        *line_buf         = NULL;
 static char       **line_tokens      = NULL;
 
 /**
- * @brief Returns whether the token is a long flag (starts with "--" and has content).
+ * @brief Returns whether the token is a flag.
+ *
+ * A flag starts with "-" or "--" and is not a bare "-" or "--".
+ * A bare "-" is not a flag (it's a common stdin placeholder).
+ * A bare "--" is the positional terminator and is handled separately.
  */
-static bool is_long_flag(const char *s) {
-    return s != NULL && s[0] == '-' && s[1] == '-' && s[2] != '\0';
+static bool is_flag(const char *s) {
+    if (s == NULL || s[0] != '-' || s[1] == '\0') {
+        return false;
+    }
+    if (s[1] == '-' && s[2] == '\0') {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -40,7 +50,7 @@ static bool flag_matches(const tl_flag_t *f, const char *name, size_t name_len) 
  * @brief Fills the flag and positional tables from a token list.
  *
  * The first token is the program name and is skipped. The rest are
- * sorted into flags (anything starting with "--") and positionals
+ * sorted into flags (anything starting with "-" or "--") and positionals
  * (everything else, plus anything after a bare "--").
  */
 static bool parse_tokens(char **tokens, int count) {
@@ -70,8 +80,8 @@ static bool parse_tokens(char **tokens, int count) {
             after_dd = true;
             continue;
         }
-        // Long flag
-        if (is_long_flag(tok)) {
+        // Flag
+        if (is_flag(tok)) {
             char *eq = strchr(tok, '=');
             if (eq) {
                 flags[flag_count].name     = tok;
@@ -81,7 +91,7 @@ static bool parse_tokens(char **tokens, int count) {
                 const char *value = NULL;
                 // Consume the next token as the value if it is not another flag
                 // and not the "--" terminator
-                if (i + 1 < count && !is_long_flag(tokens[i + 1]) && !is_dash_dash(tokens[i + 1])) {
+                if (i + 1 < count && !is_flag(tokens[i + 1]) && !is_dash_dash(tokens[i + 1])) {
                     value = tokens[i + 1];
                     i++;
                 }
