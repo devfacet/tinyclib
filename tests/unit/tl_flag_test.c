@@ -444,6 +444,30 @@ static void test_tl_parse_line_double_backslash(void) {
     TEST_ASSERT_EQUAL_STRING("a\\b", tl_get_flag("--foo"));
 }
 
+static void test_tl_negative_number_value(void) {
+    // Space form: -5 is treated as its own flag. Use the = form for negatives.
+    char *argv1[] = {"program", "--count", "-5"};
+    tl_parse_args(3, argv1);
+    TEST_ASSERT_TRUE(tl_lookup_flag("--count"));
+    TEST_ASSERT_NULL(tl_get_flag("--count"));
+    TEST_ASSERT_TRUE(tl_lookup_flag("-5"));
+
+    // Equals form: unambiguous, works as expected.
+    char *argv2[] = {"program", "--count=-5"};
+    tl_parse_args(2, argv2);
+    TEST_ASSERT_EQUAL_STRING("-5", tl_get_flag("--count"));
+}
+
+static void test_tl_parse_args_null_argv(void) {
+    tl_parse_args(0, NULL);
+    TEST_ASSERT_EQUAL_UINT(0, tl_count_positional());
+    TEST_ASSERT_FALSE(tl_lookup_flag("--anything"));
+
+    tl_parse_args(5, NULL);
+    TEST_ASSERT_EQUAL_UINT(0, tl_count_positional());
+    TEST_ASSERT_FALSE(tl_lookup_flag("--anything"));
+}
+
 int main(void) {
     UNITY_BEGIN();
 
@@ -502,6 +526,8 @@ int main(void) {
     RUN_TEST(test_tl_parse_line_escaped_space);
     RUN_TEST(test_tl_parse_line_trailing_backslash);
     RUN_TEST(test_tl_parse_line_double_backslash);
+    RUN_TEST(test_tl_negative_number_value);
+    RUN_TEST(test_tl_parse_args_null_argv);
 
     return UNITY_END();
 }

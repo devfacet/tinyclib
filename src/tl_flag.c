@@ -33,7 +33,19 @@ static bool is_flag(const char *s) {
  * @brief Returns whether the token is the bare "--" terminator.
  */
 static bool is_dash_dash(const char *s) {
-    return s != NULL && s[0] == '-' && s[1] == '-' && s[2] == '\0';
+    if (s == NULL) {
+        return false;
+    }
+    if (s[0] != '-') {
+        return false;
+    }
+    if (s[1] != '-') {
+        return false;
+    }
+    if (s[2] != '\0') {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -109,6 +121,43 @@ static bool parse_tokens(char **tokens, int count) {
 }
 
 /**
+ * @brief Reads one token from `line` starting at `*i` into `line_buf` at `*bi`.
+ *
+ * Stops at unquoted whitespace or end of line. Writes the NUL terminator.
+ * Returns true on success, false if a quoted string was never closed.
+ */
+static bool read_one_token(const char *line, size_t len, size_t *i, size_t *bi) {
+    bool in_quote = false;
+    while (*i < len) {
+        char c = line[*i];
+        if (!in_quote && (c == ' ' || c == '\t')) {
+            break;
+        }
+        if (c == '"') {
+            if (in_quote) {
+                in_quote = false;
+            } else {
+                in_quote = true;
+            }
+            (*i)++;
+            continue;
+        }
+        if (c == '\\' && *i + 1 < len) {
+            line_buf[(*bi)++] = line[*i + 1];
+            *i += 2;
+            continue;
+        }
+        line_buf[(*bi)++] = c;
+        (*i)++;
+    }
+    if (in_quote) {
+        return false;
+    }
+    line_buf[(*bi)++] = '\0';
+    return true;
+}
+
+/**
  * @brief Splits a command line string into tokens stored in line_tokens.
  *
  * Text inside double quotes is kept as one token, spaces and all. The
@@ -141,31 +190,10 @@ static int tokenize_line(const char *line) {
         if (i >= len) {
             break;
         }
-        // Start a new token at the current buffer position
         line_tokens[n++] = &line_buf[bi];
-        bool in_quote    = false;
-        while (i < len) {
-            char c = line[i];
-            if (!in_quote && (c == ' ' || c == '\t')) {
-                break;
-            }
-            if (c == '"') {
-                in_quote = in_quote ? false : true;
-                i++;
-                continue;
-            }
-            if (c == '\\' && i + 1 < len) {
-                line_buf[bi++] = line[i + 1];
-                i += 2;
-                continue;
-            }
-            line_buf[bi++] = c;
-            i++;
+        if (!read_one_token(line, len, &i, &bi)) {
+            return -1;
         }
-        if (in_quote) {
-            return -1; // unterminated quoted string
-        }
-        line_buf[bi++] = '\0';
     }
     return (int)n;
 }
