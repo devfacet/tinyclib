@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(tinyclib VERSION 0.3.0 LANGUAGES C)
+project(tinyclib VERSION 0.3.1 LANGUAGES C)
 
 # Settings and options
 option(TL_BUILD_TESTS "Build tinyclib tests" ${PROJECT_IS_TOP_LEVEL})

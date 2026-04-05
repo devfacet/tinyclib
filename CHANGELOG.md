@@ -3,11 +3,17 @@
 See https://common-changelog.org for commit guidelines and https://semver.org
 for versioning.
 
+## v0.3.1 - 2026-04-04
+
+### Fixed
+
+- Fix argument parsing (#16)
+
 ## v0.3.0 - 2026-04-04
 
 ### Changed
 
-Improve argument parsing (#14)
+- Improve argument parsing (#14)
 
 ## v0.2.1 - 2026-04-03
 
