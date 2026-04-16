@@ -468,6 +468,42 @@ static void test_tl_parse_args_null_argv(void) {
     TEST_ASSERT_FALSE(tl_lookup_flag("--anything"));
 }
 
+static void test_tl_lookup_positional(void) {
+    char *argv[] = {"program", "serve", "-f", "file"};
+    tl_parse_args(4, argv);
+    TEST_ASSERT_TRUE(tl_lookup_positional("serve"));
+    TEST_ASSERT_FALSE(tl_lookup_positional("missing"));
+}
+
+static void test_tl_lookup_positional_multiple(void) {
+    char *argv[] = {"program", "remote", "add", "origin", "--verbose"};
+    tl_parse_args(5, argv);
+    TEST_ASSERT_TRUE(tl_lookup_positional("remote"));
+    TEST_ASSERT_TRUE(tl_lookup_positional("add"));
+    TEST_ASSERT_TRUE(tl_lookup_positional("origin"));
+    TEST_ASSERT_FALSE(tl_lookup_positional("--verbose"));
+}
+
+static void test_tl_lookup_positional_after_terminator(void) {
+    char *argv[] = {"program", "cmd", "--", "--foo", "bar"};
+    tl_parse_args(5, argv);
+    TEST_ASSERT_TRUE(tl_lookup_positional("cmd"));
+    TEST_ASSERT_TRUE(tl_lookup_positional("--foo"));
+    TEST_ASSERT_TRUE(tl_lookup_positional("bar"));
+}
+
+static void test_tl_lookup_positional_none(void) {
+    char *argv[] = {"program", "--flag"};
+    tl_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_lookup_positional("anything"));
+}
+
+static void test_tl_lookup_positional_null(void) {
+    char *argv[] = {"program", "cmd"};
+    tl_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_lookup_positional(NULL));
+}
+
 int main(void) {
     UNITY_BEGIN();
 
@@ -528,6 +564,11 @@ int main(void) {
     RUN_TEST(test_tl_parse_line_double_backslash);
     RUN_TEST(test_tl_negative_number_value);
     RUN_TEST(test_tl_parse_args_null_argv);
+    RUN_TEST(test_tl_lookup_positional);
+    RUN_TEST(test_tl_lookup_positional_multiple);
+    RUN_TEST(test_tl_lookup_positional_after_terminator);
+    RUN_TEST(test_tl_lookup_positional_none);
+    RUN_TEST(test_tl_lookup_positional_null);
 
     return UNITY_END();
 }
