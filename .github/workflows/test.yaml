@@ -35,34 +35,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Install mise
+      - name: Install Dependencies
         run: |
           curl https://mise.run | sh
           mise settings experimental=true
+          mise trust
+          mise install
 
-      - name: Trust workspace
-        run: mise trust
-
-      - name: Install dependencies
-        run: mise exec -- mise install
-
-      - name: Configure project
+      - name: Configure
         run: mise exec -- make configure
 
-      - name: Run formatting checks
-        run: mise exec -- make format
-
-      - name: Run lint
-        run: mise exec -- make lint
-
-      - name: Run static analysis
-        run: mise exec -- make check
-
-      - name: Build project
+      - name: Build
         run: mise exec -- make build
 
-      - name: Run tests
+      - name: Test
         run: mise exec -- make test
+
+      - name: Formatting
+        run: mise exec -- make format
+
+      - name: Linting
+        run: mise exec -- make lint
+
+      - name: Static Analysis
+        run: mise exec -- make check
 
   test-amd64:
     needs: test

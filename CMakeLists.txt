@@ -3,24 +3,27 @@ cmake_minimum_required(VERSION 3.25)
 project(tinyclib VERSION 0.3.1 LANGUAGES C)
 
 # Settings and options
-option(TL_BUILD_TESTS "Build tinyclib tests" ${PROJECT_IS_TOP_LEVEL})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+option(TL_BUILD_TESTS "Build tinyclib tests" ${PROJECT_IS_TOP_LEVEL})
+
+function(tl_configure_c_target target)
+  set_property(TARGET ${target} PROPERTY C_STANDARD 11)
+  set_property(TARGET ${target} PROPERTY C_STANDARD_REQUIRED ON)
+  set_property(TARGET ${target} PROPERTY C_EXTENSIONS OFF)
+endfunction()
 
 # Dependencies
+include(CTest)
 include(FetchContent)
+
 # Sources
 file(GLOB SOURCES CONFIGURE_DEPENDS src/*.c)
-
 # Add the library (BUILD_SHARED_LIBS is handled by CMake)
 add_library(tinyclib ${SOURCES})
-
-# Set the C standard
-set_property(TARGET tinyclib PROPERTY C_STANDARD 11)
-set_property(TARGET tinyclib PROPERTY C_STANDARD_REQUIRED ON)
-set_property(TARGET tinyclib PROPERTY C_EXTENSIONS OFF)
+tl_configure_c_target(tinyclib)
 
 # Set include directories for build and install
 target_include_directories(
@@ -29,6 +32,14 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+set_target_properties(tinyclib PROPERTIES POSITION_INDEPENDENT_CODE ON) # support shared libraries
+add_library(tinyclib::tinyclib ALIAS tinyclib) # add a namespace alias for modern linking
+
+# Tests
+if(TL_BUILD_TESTS)
+  add_subdirectory(third_party/unity)
+  add_subdirectory(tests)
+endif()
 
 # Install targets and headers
 include(GNUInstallDirs)
@@ -71,38 +82,3 @@ install(
   NAMESPACE tinyclib::
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tinyclib
 )
-
-# Add a namespace alias for modern linking
-add_library(tinyclib::tinyclib ALIAS tinyclib)
-
-# Support shared libraries
-set_target_properties(tinyclib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Build tests
-if(TL_BUILD_TESTS)
-  include(CTest)
-  include(FetchContent)
-  set(TEST_TARGETS
-    tl_app_test
-    tl_config_test
-    tl_debug_test
-    tl_error_test
-    tl_flag_test
-    tl_test_test
-  )
-
-  # FetchContent for Unity testing framework
-  FetchContent_Declare(
-    Unity
-    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-    GIT_TAG v2.6.1
-  )
-  FetchContent_MakeAvailable(Unity)
-
-  enable_testing()
-  foreach(t IN LISTS TEST_TARGETS)
-    add_executable(${t} tests/unit/${t}.c)
-    target_link_libraries(${t} unity tinyclib)
-    add_test(NAME ${t} COMMAND ${t})
-  endforeach()
-endif()
