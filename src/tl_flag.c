@@ -291,6 +291,18 @@ const char *tl_get_flag_at(const char *flag, size_t index) {
     return NULL;
 }
 
+bool tl_lookup_positional(const char *value) {
+    if (!value) {
+        return false;
+    }
+    for (size_t i = 0; i < positional_count; i++) {
+        if (strcmp(positionals[i], value) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 size_t tl_count_positional(void) {
     return positional_count;
 }

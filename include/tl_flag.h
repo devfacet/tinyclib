@@ -124,6 +124,15 @@ size_t tl_count_flag(const char *flag);
 const char *tl_get_flag_at(const char *flag, size_t index);
 
 /**
+ * @brief Looks up a specific positional argument by value.
+ *
+ * @param value The positional value to look up.
+ *
+ * @return true if the positional is found, false otherwise.
+ */
+bool tl_lookup_positional(const char *value);
+
+/**
  * @brief Returns the number of positional arguments.
  *
  * Positionals are bare arguments (not starting with `-` or `--`) and
