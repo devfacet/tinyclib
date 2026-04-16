@@ -3,6 +3,12 @@
 See https://common-changelog.org for commit guidelines and https://semver.org
 for versioning.
 
+## v0.4.0 - 2026-04-15
+
+### Added
+
+- Add tl_lookup_positional (#18)
+
 ## v0.3.1 - 2026-04-04
 
 ### Fixed
