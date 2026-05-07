@@ -3,6 +3,13 @@
 See https://common-changelog.org for commit guidelines and https://semver.org
 for versioning.
 
+## v0.5.0 - 2026-05-06
+
+### Changed
+
+- **Breaking:** Rename public API functions (#21)
+- Improve flag handling (#20)
+
 ## v0.4.0 - 2026-04-15
 
 ### Added
