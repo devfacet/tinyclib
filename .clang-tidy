@@ -3,9 +3,23 @@ Checks: >
   bugprone-*,
   misc-*,
   readability-*,
+  -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-identifier-length,
   -misc-unused-parameters,
-  -misc-include-cleaner
+  -misc-include-cleaner,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 
-HeaderFilterRegex: 'src/.*'
+HeaderFilterRegex: '^(src|include|cmd)/.*'
+
+CheckOptions:
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TypedefCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.EnumConstantCase: UPPER_CASE
+  readability-function-cognitive-complexity.Threshold: 25
+  readability-function-cognitive-complexity.IgnoreMacros: true

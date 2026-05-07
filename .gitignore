@@ -1,8 +1,8 @@
 .DS_Store
 *log*.txt
 
-/tmp
-/build
+tmp/
+build/
 
 # VSCode
 .vscode/*
@@ -11,4 +11,7 @@
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/tasks.json
+
+# Misc
+docs/
 

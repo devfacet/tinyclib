@@ -9,6 +9,7 @@ SRC_FILES := src/*.c include/*.h
 TEST_FILES := tests/unit/*.c
 CMD_FILES := $(wildcard cmd/*/*.c cmd/*/*.h)
 ALL_FILES := $(SRC_FILES) $(TEST_FILES) $(CMD_FILES)
+LINT_FILES := $(shell find src tests -type f -name '*.c')
 
 PRESET ?= default
 JOBS ?= 4
@@ -55,16 +56,23 @@ format: ## Check code formatting
 
 lint: ## Check code linting
 	@test -n "$(CLANG_TIDY)" || { echo "error: clang-tidy not found"; exit 1; }
-	@test -f "$(PRESET_BUILD_DIR)/compile_commands.json" || cmake --preset default
-	$(CLANG_TIDY) --config-file=$(PROJECT_DIR)/.clang-tidy -p $(PRESET_BUILD_DIR) $(CLANG_TIDY_EXTRA_ARGS) \
-		--header-filter="^$(PROJECT_DIR)/(src|include|tests)/" src/*.c tests/unit/*.c
+	@test -f "$(PROJECT_DIR)/$(PRESET_BUILD_DIR)/compile_commands.json" || cmake --preset $(PRESET)
+	@$(CLANG_TIDY) \
+		--config-file=$(PROJECT_DIR)/.clang-tidy \
+		-p $(PROJECT_DIR)/$(PRESET_BUILD_DIR) \
+		$(CLANG_TIDY_EXTRA_ARGS) \
+		--warnings-as-errors='*' \
+		--quiet \
+		--header-filter="^$(PROJECT_DIR)/(src|include|cmd|tests)/" \
+		--exclude-header-filter="^$(PROJECT_DIR)/$(BUILD_ROOT)/" \
+		$(LINT_FILES)
 
 check: ## Static analysis
 	@test -n "$(CPPCHECK)" || { echo "error: cppcheck not found"; exit 1; }
-	@test -f "$(PRESET_BUILD_DIR)/compile_commands.json" || cmake --preset default
+	@test -f "$(PROJECT_DIR)/$(PRESET_BUILD_DIR)/compile_commands.json" || cmake --preset $(PRESET)
 	$(CPPCHECK) --enable=warning,style,performance,portability --error-exitcode=1 \
-		--check-level=exhaustive --project=$(PRESET_BUILD_DIR)/compile_commands.json \
-		--suppress=missingIncludeSystem -i$(PRESET_BUILD_DIR)
+		--check-level=exhaustive --project=$(PROJECT_DIR)/$(PRESET_BUILD_DIR)/compile_commands.json \
+		--suppress=missingIncludeSystem -i$(PROJECT_DIR)/$(PRESET_BUILD_DIR)
 
 check-all: test format lint check ## Run all checks
 
