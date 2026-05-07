@@ -9,20 +9,20 @@ void tearDown(void) {
     tl_flag_free_args();
 }
 
-static void test_tl_flag_parse_args(void) {
+static void test_tl_flag_parse_args_single_flag_sets_flag(void) {
     char *argv[] = {"program", "--test-flag"};
     TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args(2, argv));
     TEST_ASSERT_TRUE(tl_flag_has_flag("--test-flag"));
 }
 
-static void test_tl_flag_has_flag(void) {
+static void test_tl_flag_has_flag_existing_flag_returns_true(void) {
     char *argv[] = {"program", "--test-flag"};
     tl_flag_parse_args(2, argv);
     TEST_ASSERT_TRUE(tl_flag_has_flag("--test-flag"));
     TEST_ASSERT_FALSE(tl_flag_has_flag("--nonexistent-flag"));
 }
 
-static void test_tl_flag_get_value(void) {
+static void test_tl_flag_get_value_equals_value_returns_value(void) {
     char *argv[] = {"program", "--key=value"};
     tl_flag_parse_args(2, argv);
     TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--key"));
@@ -35,7 +35,7 @@ static void test_tl_flag_get_value_space(void) {
     TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--key"));
 }
 
-static void test_tl_flag_exact_match(void) {
+static void test_tl_flag_get_value_partial_name_returns_null(void) {
     char *argv[] = {"program", "--foobar=1"};
     tl_flag_parse_args(2, argv);
     TEST_ASSERT_FALSE(tl_flag_has_flag("--foo"));
@@ -721,11 +721,11 @@ static void test_tl_flag_has_positional_null(void) {
 int main(void) {
     UNITY_BEGIN();
 
-    RUN_TEST(test_tl_flag_parse_args);
-    RUN_TEST(test_tl_flag_has_flag);
-    RUN_TEST(test_tl_flag_get_value);
+    RUN_TEST(test_tl_flag_parse_args_single_flag_sets_flag);
+    RUN_TEST(test_tl_flag_has_flag_existing_flag_returns_true);
+    RUN_TEST(test_tl_flag_get_value_equals_value_returns_value);
     RUN_TEST(test_tl_flag_get_value_space);
-    RUN_TEST(test_tl_flag_exact_match);
+    RUN_TEST(test_tl_flag_get_value_partial_name_returns_null);
     RUN_TEST(test_tl_flag_parse_args_repeated_flag_equals);
     RUN_TEST(test_tl_flag_parse_args_repeated_flag_mixed);
     RUN_TEST(test_tl_flag_parse_args_repeated_boolean_flag);
