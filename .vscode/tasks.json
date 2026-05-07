@@ -7,9 +7,8 @@
       "command": "cmake",
       "args": [
         "--build",
-        "${workspaceFolder}/build",
-        "--config",
-        "Debug"
+        "--preset",
+        "default"
       ],
       "group": {
         "kind": "build",

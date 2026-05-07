@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug tl_app_test",
+      "name": "Debug tl_app",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/tl_app_test",
+      "program": "${workspaceFolder}/build/tests/bin/tl_app",
       "args": [],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "CMake: Build"

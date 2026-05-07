@@ -7,11 +7,16 @@
 #include <stddef.h>
 
 /**
+ * @brief Represents a not-found result for index returning functions.
+ */
+#define TL_ARG_NOT_FOUND ((size_t)-1)
+
+/**
  * @brief Represents a parsed flag.
  *
  * `name` points into argv (or the tokenizer buffer) at the first '-' of
  * the flag. `name_len` is the length up to '\0' or '='. For the '=' form
- * `name` is NOT a NUL-terminated C string at name_len — name[name_len] is
+ * `name` is NOT a NUL-terminated C string at name_len: name[name_len] is
  * '=', so comparisons must use memcmp with name_len, never strcmp.
  *
  *   argv entry: "--foo=bar"
@@ -39,7 +44,89 @@ typedef struct {
     const char *name;     // points at the first '-' of the flag in argv
     size_t      name_len; // length of the flag name up to '\0' or '='
     const char *value;    // value after first '=', or NULL if none
-} tl_flag_t;
+} TlFlag;
+
+/**
+ * @brief Represents options for argument parsing.
+ */
+typedef struct {
+    const char *const *value_flags;
+    const char *const *bool_flags;
+} TlParseOptions;
+
+/**
+ * @brief Defines argument parser result codes.
+ */
+typedef enum {
+    TL_PARSE_OK                       = 0,
+    TL_PARSE_ERROR_INVALID_RANGE      = -1,
+    TL_PARSE_ERROR_UNKNOWN_FLAG       = -2,
+    TL_PARSE_ERROR_MISSING_VALUE      = -3,
+    TL_PARSE_ERROR_CONFLICTING_FLAG   = -4,
+    TL_PARSE_ERROR_MEMORY_ALLOCATION  = -5,
+    TL_PARSE_ERROR_INVALID_INPUT      = -6,
+    TL_PARSE_ERROR_UNTERMINATED_QUOTE = -7,
+} TlParseResult;
+
+/**
+ * @brief Returns the first argv index matching the given name.
+ *
+ * Searches argv from index 0.
+ *
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @param name The exact argument name to find.
+ *
+ * @return The argv index, or TL_ARG_NOT_FOUND when not found.
+ */
+size_t tl_arg_index(int argc, char *argv[], const char *name);
+
+/**
+ * @brief Returns the first argv index matching the given name after an index.
+ *
+ * Searches argv starting after index.
+ *
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @param name The exact argument name to find.
+ * @param index The argv index to search after.
+ *
+ * @return The argv index, or TL_ARG_NOT_FOUND when not found.
+ */
+size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index);
+
+/**
+ * @brief Parses the given command line arguments with options.
+ *
+ * Default parsing is used when options is NULL or both option lists are NULL.
+ * With default parsing this behaves like tl_parse_args. Strict mode is enabled
+ * when either option list is non-NULL.
+ *
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @param options The parse options, or NULL for default parsing.
+ *
+ * @return TL_PARSE_OK on success, or a negative parse error.
+ */
+TlParseResult tl_parse_args_ex(int argc, char *argv[], const TlParseOptions *options);
+
+/**
+ * @brief Parses an explicit argv range.
+ *
+ * Parses argv indexes [start_index, end_index). argv[0] has no special meaning
+ * for this function. The parsed positional indexes are relative to the selected
+ * range.
+ *
+ * @param argc The number of command line arguments.
+ * @param argv The command line arguments.
+ * @param start_index The first argv index to parse.
+ * @param end_index The argv index one past the last token to parse.
+ * @param options The parse options, or NULL for default parsing.
+ *
+ * @return TL_PARSE_OK on success, or a negative parse error.
+ */
+TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
+                                  const TlParseOptions *options);
 
 /**
  * @brief Parses the given command line arguments.
@@ -54,9 +141,9 @@ typedef struct {
  * @param argc The number of command line arguments.
  * @param argv The command line arguments.
  *
- * @return void
+ * @return TL_PARSE_OK on success, or a negative parse error.
  */
-void tl_parse_args(int argc, char *argv[]);
+TlParseResult tl_parse_args(int argc, char *argv[]);
 
 /**
  * @brief Parses a raw command line string.
@@ -67,9 +154,9 @@ void tl_parse_args(int argc, char *argv[]);
  *
  * @param line The command line string to parse.
  *
- * @return true on success, false otherwise.
+ * @return TL_PARSE_OK on success, or a negative parse error.
  */
-bool tl_parse_line(const char *line);
+TlParseResult tl_parse_line(const char *line);
 
 /**
  * @brief Releases memory held by the argument parser.

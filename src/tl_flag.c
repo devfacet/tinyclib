@@ -5,7 +5,7 @@
 #include <string.h>
 
 // Init vars
-static tl_flag_t   *flags            = NULL;
+static TlFlag      *flags            = NULL;
 static size_t       flag_count       = 0;
 static const char **positionals      = NULL;
 static size_t       positional_count = 0;
@@ -51,7 +51,7 @@ static bool is_dash_dash(const char *s) {
 /**
  * @brief Returns whether a parsed flag matches the given name.
  */
-static bool flag_matches(const tl_flag_t *f, const char *name, size_t name_len) {
+static bool is_flag_match(const TlFlag *f, const char *name, size_t name_len) {
     if (f->name_len != name_len) {
         return false;
     }
@@ -59,25 +59,162 @@ static bool flag_matches(const tl_flag_t *f, const char *name, size_t name_len) 
 }
 
 /**
- * @brief Fills the flag and positional tables from a token list.
- *
- * The first token is the program name and is skipped. The rest are
- * sorted into flags (anything starting with "-" or "--") and positionals
- * (everything else, plus anything after a bare "--").
+ * @brief Returns whether the argv token matches a name.
  */
-static bool parse_tokens(char **tokens, int count) {
-    if (count <= 1 || !tokens) {
-        return true;
+static bool has_token_match(const char *const argv[], size_t index, const char *name) {
+    return argv[index] && strcmp(argv[index], name) == 0;
+}
+
+/**
+ * @brief Returns whether the flag name appears in a NULL-terminated list.
+ */
+static bool has_flag_name(const char *const *names, const char *name, size_t name_len) {
+    if (!names || !name) {
+        return false;
+    }
+    for (size_t i = 0; names[i]; i++) {
+        size_t current_len = strlen(names[i]);
+        if (current_len == name_len && memcmp(names[i], name, name_len) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Returns whether parser options require strict flag matching.
+ */
+static bool has_strict_flag_lists(const TlParseOptions *options) {
+    if (!options) {
+        return false;
+    }
+    return options->value_flags || options->bool_flags;
+}
+
+/**
+ * @brief Returns whether any flag appears in both strict flag lists.
+ */
+static bool has_conflicting_flags(const TlParseOptions *options) {
+    if (!options || !options->value_flags || !options->bool_flags) {
+        return false;
+    }
+    for (size_t i = 0; options->value_flags[i]; i++) {
+        size_t value_len = strlen(options->value_flags[i]);
+        if (has_flag_name(options->bool_flags, options->value_flags[i], value_len)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Adds a parsed flag entry.
+ */
+static void add_flag(const char *name, size_t name_len, const char *value) {
+    flags[flag_count].name     = name;
+    flags[flag_count].name_len = name_len;
+    flags[flag_count].value    = value;
+    flag_count++;
+}
+
+/**
+ * @brief Returns the default parsing value for a space-form flag.
+ */
+static const char *take_default_flag_value(char **tokens, size_t *index, size_t end_index) {
+    size_t next_index = *index + 1;
+    if (next_index >= end_index) {
+        return NULL;
+    }
+    if (is_flag(tokens[next_index]) || is_dash_dash(tokens[next_index])) {
+        return NULL;
+    }
+    *index = next_index;
+    return tokens[next_index];
+}
+
+/**
+ * @brief Takes the required strict-mode value for a value flag.
+ */
+static TlParseResult take_strict_flag_value(char **tokens, size_t *index, size_t end_index,
+                                            const char **value) {
+    size_t next_index = *index + 1;
+    if (next_index >= end_index) {
+        return TL_PARSE_ERROR_MISSING_VALUE;
+    }
+    if (is_flag(tokens[next_index]) || is_dash_dash(tokens[next_index])) {
+        return TL_PARSE_ERROR_MISSING_VALUE;
+    }
+    *index = next_index;
+    *value = tokens[next_index];
+    return TL_PARSE_OK;
+}
+
+/**
+ * @brief Parses one flag token into the flag table.
+ */
+static TlParseResult parse_flag_token(char **tokens, size_t *index, size_t end_index,
+                                      const TlParseOptions *options, bool strict) {
+    const char *tok        = tokens[*index];
+    const char *eq         = strchr(tok, '=');
+    size_t      name_len   = eq ? (size_t)(eq - tok) : strlen(tok);
+    bool        value_flag = false;
+
+    if (strict) {
+        value_flag = has_flag_name(options->value_flags, tok, name_len);
+        if (!value_flag && !has_flag_name(options->bool_flags, tok, name_len)) {
+            return TL_PARSE_ERROR_UNKNOWN_FLAG;
+        }
     }
 
-    flags       = (tl_flag_t *)calloc((size_t)count, sizeof(*flags));
-    positionals = (const char **)calloc((size_t)count, sizeof(*positionals));
+    if (eq) {
+        add_flag(tok, name_len, eq + 1);
+        return TL_PARSE_OK;
+    }
+
+    const char *value = NULL;
+    if (strict && value_flag) {
+        TlParseResult result = take_strict_flag_value(tokens, index, end_index, &value);
+        if (result != TL_PARSE_OK) {
+            return result;
+        }
+    }
+    if (!strict) {
+        value = take_default_flag_value(tokens, index, end_index);
+    }
+
+    add_flag(tok, name_len, value);
+    return TL_PARSE_OK;
+}
+
+/**
+ * @brief Fills the flag and positional tables from a token list.
+ *
+ * Tokens in [start_index, end_index) are sorted into flags (anything starting
+ * with "-" or "--") and positionals (everything else, plus anything after a
+ * bare "--").
+ */
+static TlParseResult parse_token_range(char **tokens, size_t start_index, size_t end_index,
+                                       const TlParseOptions *options) {
+    if (start_index == end_index) {
+        return TL_PARSE_OK;
+    }
+    if (!tokens) {
+        return TL_PARSE_ERROR_INVALID_RANGE;
+    }
+    if (has_conflicting_flags(options)) {
+        return TL_PARSE_ERROR_CONFLICTING_FLAG;
+    }
+
+    size_t count = end_index - start_index;
+    flags        = (TlFlag *)calloc(count, sizeof(*flags));
+    positionals  = (const char **)calloc(count, sizeof(*positionals));
     if (!flags || !positionals) {
-        return false;
+        return TL_PARSE_ERROR_MEMORY_ALLOCATION;
     }
 
     bool after_dd = false;
-    for (int i = 1; i < count; i++) {
+    bool strict   = has_strict_flag_lists(options);
+    for (size_t i = start_index; i < end_index; i++) {
         char *tok = tokens[i];
         if (!tok) {
             continue;
@@ -94,39 +231,24 @@ static bool parse_tokens(char **tokens, int count) {
         }
         // Flag
         if (is_flag(tok)) {
-            char *eq = strchr(tok, '=');
-            if (eq) {
-                flags[flag_count].name     = tok;
-                flags[flag_count].name_len = (size_t)(eq - tok);
-                flags[flag_count].value    = eq + 1;
-            } else {
-                const char *value = NULL;
-                // Consume the next token as the value if it is not another flag
-                // and not the "--" terminator
-                if (i + 1 < count && !is_flag(tokens[i + 1]) && !is_dash_dash(tokens[i + 1])) {
-                    value = tokens[i + 1];
-                    i++;
-                }
-                flags[flag_count].name     = tok;
-                flags[flag_count].name_len = strlen(tok);
-                flags[flag_count].value    = value;
+            TlParseResult result = parse_flag_token(tokens, &i, end_index, options, strict);
+            if (result != TL_PARSE_OK) {
+                return result;
             }
-            flag_count++;
             continue;
         }
         // Positional
         positionals[positional_count++] = tok;
     }
-    return true;
+    return TL_PARSE_OK;
 }
 
 /**
  * @brief Reads one token from `line` starting at `*i` into `line_buf` at `*bi`.
  *
  * Stops at unquoted whitespace or end of line. Writes the NUL terminator.
- * Returns true on success, false if a quoted string was never closed.
  */
-static bool read_one_token(const char *line, size_t len, size_t *i, size_t *bi) {
+static TlParseResult read_one_token(const char *line, size_t len, size_t *i, size_t *bi) {
     bool in_quote = false;
     while (*i < len) {
         char c = line[*i];
@@ -151,10 +273,10 @@ static bool read_one_token(const char *line, size_t len, size_t *i, size_t *bi) 
         (*i)++;
     }
     if (in_quote) {
-        return false;
+        return TL_PARSE_ERROR_UNTERMINATED_QUOTE;
     }
     line_buf[(*bi)++] = '\0';
-    return true;
+    return TL_PARSE_OK;
 }
 
 /**
@@ -162,21 +284,24 @@ static bool read_one_token(const char *line, size_t len, size_t *i, size_t *bi) 
  *
  * Text inside double quotes is kept as one token, spaces and all. The
  * quote characters themselves are dropped. A backslash keeps the next
- * character as-is (e.g. \" or \\). Returns the token count on success,
- * or -1 if malloc fails or a quote is never closed.
+ * character as-is (e.g. \" or \\).
  */
-static int tokenize_line(const char *line) {
+static TlParseResult tokenize_line(const char *line, size_t *token_count) {
+    if (!line || !token_count) {
+        return TL_PARSE_ERROR_INVALID_INPUT;
+    }
+
     size_t len = strlen(line);
     line_buf   = malloc(len + 1);
     if (!line_buf) {
-        return -1;
+        return TL_PARSE_ERROR_MEMORY_ALLOCATION;
     }
 
     // Upper bound: one token per two bytes, plus a slot for the "argv[0]" entry
     size_t tok_cap = (len / 2) + 2;
     line_tokens    = (char **)malloc(tok_cap * sizeof(*line_tokens));
     if (!line_tokens) {
-        return -1;
+        return TL_PARSE_ERROR_MEMORY_ALLOCATION;
     }
 
     size_t n  = 0;
@@ -190,36 +315,96 @@ static int tokenize_line(const char *line) {
         if (i >= len) {
             break;
         }
-        line_tokens[n++] = &line_buf[bi];
-        if (!read_one_token(line, len, &i, &bi)) {
-            return -1;
+        line_tokens[n++]     = &line_buf[bi];
+        TlParseResult result = read_one_token(line, len, &i, &bi);
+        if (result != TL_PARSE_OK) {
+            return result;
         }
     }
-    return (int)n;
+    *token_count = n;
+    return TL_PARSE_OK;
 }
 
-void tl_parse_args(int argc, char *argv[]) {
+size_t tl_arg_index(int argc, char *argv[], const char *name) {
+    if (argc <= 0 || !argv || !name) {
+        return TL_ARG_NOT_FOUND;
+    }
+    for (int i = 0; i < argc; i++) {
+        if (has_token_match((const char *const *)argv, (size_t)i, name)) {
+            return (size_t)i;
+        }
+    }
+    return TL_ARG_NOT_FOUND;
+}
+
+size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index) {
+    if (index == TL_ARG_NOT_FOUND || argc <= 0 || !argv || !name) {
+        return TL_ARG_NOT_FOUND;
+    }
+    size_t start = index + 1;
+    if (start >= (size_t)argc) {
+        return TL_ARG_NOT_FOUND;
+    }
+    for (size_t i = start; i < (size_t)argc; i++) {
+        if (has_token_match((const char *const *)argv, i, name)) {
+            return i;
+        }
+    }
+    return TL_ARG_NOT_FOUND;
+}
+
+TlParseResult tl_parse_args_ex(int argc, char *argv[], const TlParseOptions *options) {
     tl_free_args();
-    if (!parse_tokens(argv, argc)) {
+    if (argc <= 1 || !argv) {
+        return TL_PARSE_OK;
+    }
+    TlParseResult result = parse_token_range(argv, 1, (size_t)argc, options);
+    if (result != TL_PARSE_OK) {
         tl_free_args();
     }
+    return result;
 }
 
-bool tl_parse_line(const char *line) {
+TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
+                                  const TlParseOptions *options) {
+    tl_free_args();
+    if (argc < 0 || start_index == TL_ARG_NOT_FOUND || end_index == TL_ARG_NOT_FOUND ||
+        start_index > end_index || start_index > (size_t)argc || end_index > (size_t)argc) {
+        return TL_PARSE_ERROR_INVALID_RANGE;
+    }
+    if (start_index == end_index) {
+        return TL_PARSE_OK;
+    }
+    TlParseResult result = parse_token_range(argv, start_index, end_index, options);
+    if (result != TL_PARSE_OK) {
+        tl_free_args();
+    }
+    return result;
+}
+
+TlParseResult tl_parse_args(int argc, char *argv[]) {
+    return tl_parse_args_ex(argc, argv, NULL);
+}
+
+TlParseResult tl_parse_line(const char *line) {
     tl_free_args();
     if (!line) {
-        return false;
+        return TL_PARSE_ERROR_INVALID_INPUT;
     }
-    int n = tokenize_line(line);
-    if (n < 0) {
+    size_t        n      = 0;
+    TlParseResult result = tokenize_line(line, &n);
+    if (result != TL_PARSE_OK) {
         tl_free_args();
-        return false;
+        return result;
     }
-    if (!parse_tokens(line_tokens, n)) {
+    if (n <= 1) {
+        return TL_PARSE_OK;
+    }
+    result = parse_token_range(line_tokens, 1, n, NULL);
+    if (result != TL_PARSE_OK) {
         tl_free_args();
-        return false;
     }
-    return true;
+    return result;
 }
 
 void tl_free_args(void) {
@@ -249,7 +434,7 @@ bool tl_lookup_flag(const char *flag) {
     }
     size_t flen = strlen(flag);
     for (size_t i = 0; i < flag_count; i++) {
-        if (flag_matches(&flags[i], flag, flen)) {
+        if (is_flag_match(&flags[i], flag, flen)) {
             return true;
         }
     }
@@ -267,7 +452,7 @@ size_t tl_count_flag(const char *flag) {
     size_t flen = strlen(flag);
     size_t n    = 0;
     for (size_t i = 0; i < flag_count; i++) {
-        if (flag_matches(&flags[i], flag, flen)) {
+        if (is_flag_match(&flags[i], flag, flen)) {
             n++;
         }
     }
@@ -281,7 +466,7 @@ const char *tl_get_flag_at(const char *flag, size_t index) {
     size_t flen = strlen(flag);
     size_t k    = 0;
     for (size_t i = 0; i < flag_count; i++) {
-        if (flag_matches(&flags[i], flag, flen)) {
+        if (is_flag_match(&flags[i], flag, flen)) {
             if (k == index) {
                 return flags[i].value;
             }
