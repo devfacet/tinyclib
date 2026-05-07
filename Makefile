@@ -6,7 +6,7 @@ CPPCHECK := $(shell if command -v cppcheck >/dev/null 2>&1; then echo cppcheck; 
 CLANG_TIDY_EXTRA_ARGS := $(shell if [ "$$(uname)" = "Darwin" ]; then echo "--extra-arg=--sysroot=$$(xcrun --show-sdk-path)"; fi)
 
 SRC_FILES := src/*.c include/*.h
-TEST_FILES := tests/unit/*.c
+TEST_FILES := $(wildcard tests/unit/*.c tests/api/*.c)
 CMD_FILES := $(wildcard cmd/*/*.c cmd/*/*.h)
 ALL_FILES := $(SRC_FILES) $(TEST_FILES) $(CMD_FILES)
 LINT_FILES := $(shell find src tests -type f -name '*.c')

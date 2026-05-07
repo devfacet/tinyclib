@@ -325,7 +325,7 @@ static TlParseResult tokenize_line(const char *line, size_t *token_count) {
     return TL_PARSE_OK;
 }
 
-size_t tl_arg_index(int argc, char *argv[], const char *name) {
+size_t tl_flag_get_arg_index(int argc, char *argv[], const char *name) {
     if (argc <= 0 || !argv || !name) {
         return TL_ARG_NOT_FOUND;
     }
@@ -337,7 +337,7 @@ size_t tl_arg_index(int argc, char *argv[], const char *name) {
     return TL_ARG_NOT_FOUND;
 }
 
-size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index) {
+size_t tl_flag_get_arg_index_after(int argc, char *argv[], const char *name, size_t index) {
     if (index == TL_ARG_NOT_FOUND || argc <= 0 || !argv || !name) {
         return TL_ARG_NOT_FOUND;
     }
@@ -353,21 +353,22 @@ size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index
     return TL_ARG_NOT_FOUND;
 }
 
-TlParseResult tl_parse_args_ex(int argc, char *argv[], const TlParseOptions *options) {
-    tl_free_args();
+TlParseResult tl_flag_parse_args_with_options(int argc, char *argv[],
+                                              const TlParseOptions *options) {
+    tl_flag_free_args();
     if (argc <= 1 || !argv) {
         return TL_PARSE_OK;
     }
     TlParseResult result = parse_token_range(argv, 1, (size_t)argc, options);
     if (result != TL_PARSE_OK) {
-        tl_free_args();
+        tl_flag_free_args();
     }
     return result;
 }
 
-TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
-                                  const TlParseOptions *options) {
-    tl_free_args();
+TlParseResult tl_flag_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
+                                       const TlParseOptions *options) {
+    tl_flag_free_args();
     if (argc < 0 || start_index == TL_ARG_NOT_FOUND || end_index == TL_ARG_NOT_FOUND ||
         start_index > end_index || start_index > (size_t)argc || end_index > (size_t)argc) {
         return TL_PARSE_ERROR_INVALID_RANGE;
@@ -377,24 +378,24 @@ TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, si
     }
     TlParseResult result = parse_token_range(argv, start_index, end_index, options);
     if (result != TL_PARSE_OK) {
-        tl_free_args();
+        tl_flag_free_args();
     }
     return result;
 }
 
-TlParseResult tl_parse_args(int argc, char *argv[]) {
-    return tl_parse_args_ex(argc, argv, NULL);
+TlParseResult tl_flag_parse_args(int argc, char *argv[]) {
+    return tl_flag_parse_args_with_options(argc, argv, NULL);
 }
 
-TlParseResult tl_parse_line(const char *line) {
-    tl_free_args();
+TlParseResult tl_flag_parse_line(const char *line) {
+    tl_flag_free_args();
     if (!line) {
         return TL_PARSE_ERROR_INVALID_INPUT;
     }
     size_t        n      = 0;
     TlParseResult result = tokenize_line(line, &n);
     if (result != TL_PARSE_OK) {
-        tl_free_args();
+        tl_flag_free_args();
         return result;
     }
     if (n <= 1) {
@@ -402,12 +403,12 @@ TlParseResult tl_parse_line(const char *line) {
     }
     result = parse_token_range(line_tokens, 1, n, NULL);
     if (result != TL_PARSE_OK) {
-        tl_free_args();
+        tl_flag_free_args();
     }
     return result;
 }
 
-void tl_free_args(void) {
+void tl_flag_free_args(void) {
     if (flags) {
         free(flags);
         flags = NULL;
@@ -428,7 +429,7 @@ void tl_free_args(void) {
     }
 }
 
-bool tl_lookup_flag(const char *flag) {
+bool tl_flag_has_flag(const char *flag) {
     if (!flag) {
         return false;
     }
@@ -441,11 +442,11 @@ bool tl_lookup_flag(const char *flag) {
     return false;
 }
 
-const char *tl_get_flag(const char *flag) {
-    return tl_get_flag_at(flag, 0);
+const char *tl_flag_get_value(const char *flag) {
+    return tl_flag_get_value_at(flag, 0);
 }
 
-size_t tl_count_flag(const char *flag) {
+size_t tl_flag_count_flag(const char *flag) {
     if (!flag) {
         return 0;
     }
@@ -459,7 +460,7 @@ size_t tl_count_flag(const char *flag) {
     return n;
 }
 
-const char *tl_get_flag_at(const char *flag, size_t index) {
+const char *tl_flag_get_value_at(const char *flag, size_t index) {
     if (!flag) {
         return NULL;
     }
@@ -476,7 +477,7 @@ const char *tl_get_flag_at(const char *flag, size_t index) {
     return NULL;
 }
 
-bool tl_lookup_positional(const char *value) {
+bool tl_flag_has_positional(const char *value) {
     if (!value) {
         return false;
     }
@@ -488,11 +489,11 @@ bool tl_lookup_positional(const char *value) {
     return false;
 }
 
-size_t tl_count_positional(void) {
+size_t tl_flag_count_positional(void) {
     return positional_count;
 }
 
-const char *tl_get_positional(size_t index) {
+const char *tl_flag_get_positional(size_t index) {
     if (index >= positional_count) {
         return NULL;
     }

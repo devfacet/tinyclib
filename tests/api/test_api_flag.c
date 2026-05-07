@@ -1,0 +1,810 @@
+#include "tl_flag.h"
+#include "unity.h"
+
+void setUp(void) {
+    // Setup code if needed
+}
+
+void tearDown(void) {
+    tl_flag_free_args();
+}
+
+static void test_tl_flag_parse_args(void) {
+    char *argv[] = {"program", "--test-flag"};
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args(2, argv));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--test-flag"));
+}
+
+static void test_tl_flag_has_flag(void) {
+    char *argv[] = {"program", "--test-flag"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--test-flag"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--nonexistent-flag"));
+}
+
+static void test_tl_flag_get_value(void) {
+    char *argv[] = {"program", "--key=value"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--key"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--nonexistent-key"));
+}
+
+static void test_tl_flag_get_value_space(void) {
+    char *argv[] = {"program", "--key", "value"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--key"));
+}
+
+static void test_tl_flag_exact_match(void) {
+    char *argv[] = {"program", "--foobar=1"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--foo"));
+    TEST_ASSERT_EQUAL_STRING("1", tl_flag_get_value("--foobar"));
+}
+
+static void test_tl_flag_parse_args_repeated_flag_equals(void) {
+    char *argv[] = {"program", "--foo=x", "--foo=y", "--foo=z"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_flag("--foo"));
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value_at("--foo", 0));
+    TEST_ASSERT_EQUAL_STRING("y", tl_flag_get_value_at("--foo", 1));
+    TEST_ASSERT_EQUAL_STRING("z", tl_flag_get_value_at("--foo", 2));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--foo", 3));
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_args_repeated_flag_mixed(void) {
+    char *argv[] = {"program", "--foo=x", "--foo", "y", "--foo=z"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_flag("--foo"));
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value_at("--foo", 0));
+    TEST_ASSERT_EQUAL_STRING("y", tl_flag_get_value_at("--foo", 1));
+    TEST_ASSERT_EQUAL_STRING("z", tl_flag_get_value_at("--foo", 2));
+}
+
+static void test_tl_flag_parse_args_repeated_boolean_flag(void) {
+    char *argv[] = {"program", "--verbose", "--verbose", "--verbose"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_flag("--verbose"));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--verbose", 0));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--verbose", 1));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--verbose", 2));
+}
+
+static void test_tl_flag_parse_args_adjacent_space_flags(void) {
+    char *argv[] = {"program", "--foo", "x", "--bar", "y"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value("--foo"));
+    TEST_ASSERT_EQUAL_STRING("y", tl_flag_get_value("--bar"));
+}
+
+static void test_tl_flag_parse_args_space_flag_trailing_boolean(void) {
+    char *argv[] = {"program", "--foo", "x", "--bar"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value("--foo"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--bar"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--bar"));
+}
+
+static void test_tl_flag_parse_args_positional_terminator(void) {
+    char *argv[] = {"program", "command", "--foo", "--", "--baz", "--qux"};
+    tl_flag_parse_args(6, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--foo"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--baz"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--qux"));
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("command", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("--baz", tl_flag_get_positional(1));
+    TEST_ASSERT_EQUAL_STRING("--qux", tl_flag_get_positional(2));
+    TEST_ASSERT_NULL(tl_flag_get_positional(3));
+}
+
+static void test_tl_flag_parse_args_positional_interleaved(void) {
+    char *argv[] = {"program", "foo", "--flag", "val", "bar"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_STRING("val", tl_flag_get_value("--flag"));
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("foo", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("bar", tl_flag_get_positional(1));
+}
+
+static void test_tl_flag_parse_args_quoted_value_from_argv(void) {
+    char *argv[] = {"program", "--foo", "bar baz qux"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_EQUAL_STRING("bar baz qux", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_quoted(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo \"bar baz qux\""));
+    TEST_ASSERT_EQUAL_STRING("bar baz qux", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_escape(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo \"a\\\"b\""));
+    TEST_ASSERT_EQUAL_STRING("a\"b", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_full(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK,
+                          tl_flag_parse_line("prog cmd --foo=1 --foo 2 --bar \"x y\" -- --baz"));
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_count_flag("--foo"));
+    TEST_ASSERT_EQUAL_STRING("1", tl_flag_get_value_at("--foo", 0));
+    TEST_ASSERT_EQUAL_STRING("2", tl_flag_get_value_at("--foo", 1));
+    TEST_ASSERT_EQUAL_STRING("x y", tl_flag_get_value("--bar"));
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("cmd", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("--baz", tl_flag_get_positional(1));
+}
+
+static void test_tl_flag_parse_line_unterminated(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_UNTERMINATED_QUOTE,
+                          tl_flag_parse_line("program --foo \"unterminated"));
+}
+
+static void test_tl_flag_parse_line_null(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_INPUT, tl_flag_parse_line(NULL));
+}
+
+static void test_tl_flag_parse_args_short_flag(void) {
+    char *argv[] = {"program", "-h"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-h"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-h"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_short_flag_value(void) {
+    char *argv[] = {"program", "-o", "out.txt", "-v"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_STRING("out.txt", tl_flag_get_value("-o"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-v"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-v"));
+}
+
+static void test_tl_flag_parse_args_short_flag_equals(void) {
+    char *argv[] = {"program", "-o=out.txt"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_STRING("out.txt", tl_flag_get_value("-o"));
+}
+
+static void test_tl_flag_parse_args_bare_dash_is_positional(void) {
+    char *argv[] = {"program", "-"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-"));
+    TEST_ASSERT_EQUAL_UINT(1, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("-", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_short_flag_exact_match(void) {
+    char *argv[] = {"program", "-help"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-h"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-h"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-help"));
+}
+
+static void test_tl_flag_parse_args_short_repeated_boolean(void) {
+    char *argv[] = {"program", "-v", "-v", "-v"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_flag("-v"));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("-v", 0));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("-v", 1));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("-v", 2));
+}
+
+static void test_tl_flag_parse_args_short_repeated_mixed(void) {
+    char *argv[] = {"program", "-o=a", "-o", "b", "-o=c"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_flag("-o"));
+    TEST_ASSERT_EQUAL_STRING("a", tl_flag_get_value_at("-o", 0));
+    TEST_ASSERT_EQUAL_STRING("b", tl_flag_get_value_at("-o", 1));
+    TEST_ASSERT_EQUAL_STRING("c", tl_flag_get_value_at("-o", 2));
+}
+
+static void test_tl_flag_parse_args_short_adjacent(void) {
+    char *argv[] = {"program", "-a", "x", "-b", "y"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_STRING("x", tl_flag_get_value("-a"));
+    TEST_ASSERT_EQUAL_STRING("y", tl_flag_get_value("-b"));
+}
+
+static void test_tl_flag_parse_args_short_trailing_boolean(void) {
+    char *argv[] = {"program", "-o", "-v"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-o"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-o"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-v"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-v"));
+}
+
+static void test_tl_flag_parse_args_short_value_is_bare_dash(void) {
+    char *argv[] = {"program", "-o", "-"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_EQUAL_STRING("-", tl_flag_get_value("-o"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_short_long_mixed(void) {
+    char *argv[] = {"program", "-v", "--name=foo", "-o", "out", "--flag"};
+    tl_flag_parse_args(6, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-v"));
+    TEST_ASSERT_EQUAL_STRING("foo", tl_flag_get_value("--name"));
+    TEST_ASSERT_EQUAL_STRING("out", tl_flag_get_value("-o"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--flag"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--flag"));
+}
+
+static void test_tl_flag_parse_args_short_followed_by_long(void) {
+    char *argv[] = {"program", "-o", "--other"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-o"));
+    TEST_ASSERT_NULL(tl_flag_get_value("-o"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--other"));
+}
+
+static void test_tl_flag_parse_args_positional_dashdash_trailing_empty(void) {
+    char *argv[] = {"program", "--foo", "--"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--foo"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_positional_second_dashdash_is_positional(void) {
+    char *argv[] = {"program", "--", "a", "--", "b"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("a", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("--", tl_flag_get_positional(1));
+    TEST_ASSERT_EQUAL_STRING("b", tl_flag_get_positional(2));
+}
+
+static void test_tl_flag_parse_args_positional_mixed_short_long(void) {
+    char *argv[] = {"program", "pos1", "-v", "--name", "foo", "pos2", "--", "-x", "--y"};
+    tl_flag_parse_args(9, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-v"));
+    TEST_ASSERT_EQUAL_STRING("foo", tl_flag_get_value("--name"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-x"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--y"));
+    TEST_ASSERT_EQUAL_UINT(4, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("pos1", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("pos2", tl_flag_get_positional(1));
+    TEST_ASSERT_EQUAL_STRING("-x", tl_flag_get_positional(2));
+    TEST_ASSERT_EQUAL_STRING("--y", tl_flag_get_positional(3));
+}
+
+static void test_tl_flag_parse_args_positional_only(void) {
+    char *argv[] = {"program", "a", "b", "c"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_flag("--any"));
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("a", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("b", tl_flag_get_positional(1));
+    TEST_ASSERT_EQUAL_STRING("c", tl_flag_get_positional(2));
+}
+
+static void test_tl_flag_parse_args_positional_dashdash_only(void) {
+    char *argv[] = {"program", "--"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_line_quoted_positional(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK,
+                          tl_flag_parse_line("prog \"first pos\" --flag v -- \"after dd\" plain"));
+    TEST_ASSERT_EQUAL_STRING("v", tl_flag_get_value("--flag"));
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("first pos", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("after dd", tl_flag_get_positional(1));
+    TEST_ASSERT_EQUAL_STRING("plain", tl_flag_get_positional(2));
+}
+
+static void test_tl_flag_parse_args_long_empty_value(void) {
+    char *argv[] = {"program", "--foo="};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_EQUAL_STRING("", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_args_long_value_contains_equals(void) {
+    char *argv[] = {"program", "--foo=a=b=c"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_STRING("a=b=c", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_args_long_space_value_before_terminator(void) {
+    char *argv[] = {"program", "--foo", "val", "--", "pos"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_EQUAL_STRING("val", tl_flag_get_value("--foo"));
+    TEST_ASSERT_EQUAL_UINT(1, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("pos", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_short_empty_value(void) {
+    char *argv[] = {"program", "-o="};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-o"));
+    TEST_ASSERT_EQUAL_STRING("", tl_flag_get_value("-o"));
+}
+
+static void test_tl_flag_parse_args_short_multichar_name(void) {
+    char *argv[] = {"program", "-xvf", "archive.tar"};
+    tl_flag_parse_args(3, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-xvf"));
+    TEST_ASSERT_EQUAL_STRING("archive.tar", tl_flag_get_value("-xvf"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-x"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-v"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("-f"));
+}
+
+static void test_tl_flag_parse_args_terminator_at_start(void) {
+    char *argv[] = {"program", "--", "--foo", "bar"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_count_positional());
+    TEST_ASSERT_EQUAL_STRING("--foo", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("bar", tl_flag_get_positional(1));
+}
+
+static void test_tl_flag_parse_args_null_flag_argument(void) {
+    char *argv[] = {"program", "--foo=bar"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_flag(NULL));
+    TEST_ASSERT_NULL(tl_flag_get_value(NULL));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_flag(NULL));
+    TEST_ASSERT_NULL(tl_flag_get_value_at(NULL, 0));
+}
+
+static void test_tl_flag_parse_args_empty_argv(void) {
+    char *argv[] = {"program"};
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args(1, argv));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--anything"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--anything"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_flag("--anything"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+    TEST_ASSERT_NULL(tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_reparse_clears_previous(void) {
+    char *argv1[] = {"program", "--old=1", "oldpos"};
+    tl_flag_parse_args(3, argv1);
+    TEST_ASSERT_EQUAL_STRING("1", tl_flag_get_value("--old"));
+    TEST_ASSERT_EQUAL_UINT(1, tl_flag_count_positional());
+
+    char *argv2[] = {"program", "--new=2"};
+    tl_flag_parse_args(2, argv2);
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--old"));
+    TEST_ASSERT_EQUAL_STRING("2", tl_flag_get_value("--new"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_reparse_line_after_args(void) {
+    char *argv[] = {"program", "--first=1"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_STRING("1", tl_flag_get_value("--first"));
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --second=2"));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--first"));
+    TEST_ASSERT_EQUAL_STRING("2", tl_flag_get_value("--second"));
+}
+
+static void test_tl_flag_free_args_idempotent(void) {
+    tl_flag_free_args();
+    tl_flag_free_args();
+    char *argv[] = {"program", "--foo"};
+    tl_flag_parse_args(2, argv);
+    tl_flag_free_args();
+    tl_flag_free_args();
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--foo"));
+}
+
+static void test_tl_flag_count_flag_absent(void) {
+    char *argv[] = {"program", "--foo"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_flag("--missing"));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--missing", 0));
+    TEST_ASSERT_NULL(tl_flag_get_value_at("--foo", 5));
+}
+
+static void test_tl_flag_parse_line_empty(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line(""));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_line_whitespace_only(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("   \t  "));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_line_program_only(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--anything"));
+}
+
+static void test_tl_flag_parse_line_multiple_spaces(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("prog   --foo=1\t\t--bar   val"));
+    TEST_ASSERT_EQUAL_STRING("1", tl_flag_get_value("--foo"));
+    TEST_ASSERT_EQUAL_STRING("val", tl_flag_get_value("--bar"));
+}
+
+static void test_tl_flag_parse_line_empty_quoted_value(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo \"\""));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--foo"));
+    TEST_ASSERT_EQUAL_STRING("", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_escaped_space(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo bar\\ baz"));
+    TEST_ASSERT_EQUAL_STRING("bar baz", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_trailing_backslash(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo bar\\"));
+    TEST_ASSERT_EQUAL_STRING("bar\\", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_line_double_backslash(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_line("program --foo \"a\\\\b\""));
+    TEST_ASSERT_EQUAL_STRING("a\\b", tl_flag_get_value("--foo"));
+}
+
+static void test_tl_flag_parse_args_negative_number_value(void) {
+    // Space form: -5 is treated as its own flag. Use the = form for negatives.
+    char *argv1[] = {"program", "--count", "-5"};
+    tl_flag_parse_args(3, argv1);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--count"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--count"));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("-5"));
+
+    // Equals form: unambiguous, works as expected.
+    char *argv2[] = {"program", "--count=-5"};
+    tl_flag_parse_args(2, argv2);
+    TEST_ASSERT_EQUAL_STRING("-5", tl_flag_get_value("--count"));
+}
+
+static void test_tl_flag_get_arg_index_returns_argv_index(void) {
+    char *argv[] = {"program", "--global", "command", "subcommand"};
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_get_arg_index(4, argv, "command"));
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_get_arg_index(4, argv, "subcommand"));
+    TEST_ASSERT_EQUAL_UINT(TL_ARG_NOT_FOUND, tl_flag_get_arg_index(4, argv, "missing"));
+}
+
+static void test_tl_flag_get_arg_index_after_starts_after_given_index(void) {
+    char  *argv[]        = {"program", "command", "command", "subcommand"};
+    size_t command_index = tl_flag_get_arg_index(4, argv, "command");
+    TEST_ASSERT_EQUAL_UINT(2, tl_flag_get_arg_index_after(4, argv, "command", command_index));
+    TEST_ASSERT_EQUAL_UINT(3, tl_flag_get_arg_index_after(4, argv, "subcommand", command_index));
+}
+
+static void test_tl_flag_get_arg_index_after_missing_name_returns_not_found(void) {
+    char *argv[] = {"program", "command"};
+    TEST_ASSERT_EQUAL_UINT(TL_ARG_NOT_FOUND,
+                           tl_flag_get_arg_index_after(2, argv, "command", TL_ARG_NOT_FOUND));
+    TEST_ASSERT_EQUAL_UINT(TL_ARG_NOT_FOUND, tl_flag_get_arg_index_after(2, argv, "missing", 1));
+}
+
+static void test_tl_flag_public_type_accepts_tl_flag(void) {
+    TlFlag flag = {.name = "--flag-bool", .name_len = 11, .value = NULL};
+
+    TEST_ASSERT_EQUAL_STRING("--flag-bool", flag.name);
+    TEST_ASSERT_EQUAL_UINT(11, flag.name_len);
+    TEST_ASSERT_NULL(flag.value);
+}
+
+static void test_tl_flag_parse_args_with_options_null_options_uses_default_parsing(void) {
+    char *argv[] = {"program", "--flag-bool", "./tmp/example"};
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_with_options(3, argv, NULL));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_value("--flag-bool"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_with_options_empty_options_uses_default_parsing(void) {
+    char          *argv[]  = {"program", "--flag-bool", "./tmp/example"};
+    TlParseOptions options = {.value_flags = NULL, .bool_flags = NULL};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_with_options(3, argv, &options));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_value("--flag-bool"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_with_options_bool_flag_keeps_positional(void) {
+    char          *argv[]       = {"program", "--flag-bool", "./tmp/example"};
+    const char    *bool_flags[] = {"--flag-bool", NULL};
+    TlParseOptions options      = {.bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_with_options(3, argv, &options));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--flag-bool"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--flag-bool"));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_range_bool_before_positional(void) {
+    char          *argv[] = {"program", "command", "subcommand", "--flag-bool", "./tmp/example"};
+    const char    *bool_flags[]  = {"--flag-bool", NULL};
+    TlParseOptions options       = {.bool_flags = bool_flags};
+    size_t         command_index = tl_flag_get_arg_index(5, argv, "command");
+    size_t subcommand_index = tl_flag_get_arg_index_after(5, argv, "subcommand", command_index);
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK,
+                          tl_flag_parse_args_range(5, argv, subcommand_index + 1, 5, &options));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--flag-bool"));
+    TEST_ASSERT_NULL(tl_flag_get_value("--flag-bool"));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_range_bool_after_positional(void) {
+    char          *argv[] = {"program", "command", "subcommand", "./tmp/example", "--flag-bool"};
+    const char    *bool_flags[] = {"--flag-bool", NULL};
+    TlParseOptions options      = {.bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(5, argv, 3, 5, &options));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--flag-bool"));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_range_value_flag_space(void) {
+    char *argv[] = {"program", "command", "subcommand", "--flag-value", "value", "./tmp/example"};
+    const char    *value_flags[] = {"--flag-value", NULL};
+    TlParseOptions options       = {.value_flags = value_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(6, argv, 3, 6, &options));
+    TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--flag-value"));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_range_value_flag_equals(void) {
+    char *argv[] = {"program", "command", "subcommand", "--flag-value=value", "./tmp/example"};
+    const char    *value_flags[] = {"--flag-value", NULL};
+    TlParseOptions options       = {.value_flags = value_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(5, argv, 3, 5, &options));
+    TEST_ASSERT_EQUAL_STRING("value", tl_flag_get_value("--flag-value"));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(0));
+}
+
+static void test_tl_flag_parse_args_range_value_flag_without_value_returns_error(void) {
+    char          *argv[]        = {"program", "command", "subcommand", "--flag-value"};
+    const char    *value_flags[] = {"--flag-value", NULL};
+    TlParseOptions options       = {.value_flags = value_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_MISSING_VALUE,
+                          tl_flag_parse_args_range(4, argv, 3, 4, &options));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--flag-value"));
+}
+
+static void test_tl_flag_parse_args_range_dash_value_requires_equals(void) {
+    char          *argv[]        = {"program", "command", "subcommand", "--flag-value", "-5"};
+    const char    *value_flags[] = {"--flag-value", NULL};
+    TlParseOptions options       = {.value_flags = value_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_MISSING_VALUE,
+                          tl_flag_parse_args_range(5, argv, 3, 5, &options));
+}
+
+static void test_tl_flag_parse_args_range_unknown_flag_returns_error(void) {
+    char          *argv[] = {"program", "command", "subcommand", "--unknown", "./tmp/example"};
+    const char    *bool_flags[] = {"--flag-bool", NULL};
+    TlParseOptions options      = {.bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_UNKNOWN_FLAG,
+                          tl_flag_parse_args_range(5, argv, 3, 5, &options));
+}
+
+static void test_tl_flag_parse_args_range_conflicting_flag_returns_error(void) {
+    char          *argv[]        = {"program", "command", "subcommand", "--flag-bool"};
+    const char    *value_flags[] = {"--flag-bool", NULL};
+    const char    *bool_flags[]  = {"--flag-bool", NULL};
+    TlParseOptions options       = {.value_flags = value_flags, .bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_CONFLICTING_FLAG,
+                          tl_flag_parse_args_range(4, argv, 3, 4, &options));
+}
+
+static void test_tl_flag_parse_args_range_invalid_bounds_returns_error(void) {
+    char *argv[] = {"program", "command"};
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv, 3, 3, NULL));
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv, 1, 3, NULL));
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv, 2, 1, NULL));
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv, TL_ARG_NOT_FOUND, 2, NULL));
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv, 1, TL_ARG_NOT_FOUND, NULL));
+}
+
+static void test_tl_flag_parse_args_range_invalid_range_clears_previous_state(void) {
+    char *argv1[] = {"program", "--old=1", "oldpos"};
+    char *argv2[] = {"program", "command"};
+
+    tl_flag_parse_args(3, argv1);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--old"));
+    TEST_ASSERT_EQUAL_UINT(1, tl_flag_count_positional());
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_ERROR_INVALID_RANGE,
+                          tl_flag_parse_args_range(2, argv2, 1, 3, NULL));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--old"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_range_empty_range_returns_ok(void) {
+    char *argv[] = {"program", "command"};
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(2, argv, 2, 2, NULL));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_flag("--anything"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_range_empty_range_clears_previous_state(void) {
+    char *argv1[] = {"program", "--old=1", "oldpos"};
+    char *argv2[] = {"program", "command"};
+
+    tl_flag_parse_args(3, argv1);
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--old"));
+    TEST_ASSERT_EQUAL_UINT(1, tl_flag_count_positional());
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(2, argv2, 2, 2, NULL));
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--old"));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+}
+
+static void test_tl_flag_parse_args_range_can_include_argv_zero(void) {
+    char          *argv[]       = {"program", "command", "--flag-bool"};
+    const char    *bool_flags[] = {"--flag-bool", NULL};
+    TlParseOptions options      = {.bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(3, argv, 0, 3, &options));
+    TEST_ASSERT_EQUAL_STRING("program", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("command", tl_flag_get_positional(1));
+    TEST_ASSERT_TRUE(tl_flag_has_flag("--flag-bool"));
+}
+
+static void test_tl_flag_parse_args_range_terminator_keeps_positionals(void) {
+    char       *argv[] = {"program", "command", "subcommand", "--", "--unknown", "./tmp/example"};
+    const char *bool_flags[] = {"--flag-bool", NULL};
+    TlParseOptions options   = {.bool_flags = bool_flags};
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args_range(6, argv, 3, 6, &options));
+    TEST_ASSERT_EQUAL_STRING("--unknown", tl_flag_get_positional(0));
+    TEST_ASSERT_EQUAL_STRING("./tmp/example", tl_flag_get_positional(1));
+}
+
+static void test_tl_flag_parse_args_null_argv(void) {
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args(0, NULL));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--anything"));
+
+    TEST_ASSERT_EQUAL_INT(TL_PARSE_OK, tl_flag_parse_args(5, NULL));
+    TEST_ASSERT_EQUAL_UINT(0, tl_flag_count_positional());
+    TEST_ASSERT_FALSE(tl_flag_has_flag("--anything"));
+}
+
+static void test_tl_flag_has_positional(void) {
+    char *argv[] = {"program", "serve", "-f", "file"};
+    tl_flag_parse_args(4, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_positional("serve"));
+    TEST_ASSERT_FALSE(tl_flag_has_positional("missing"));
+}
+
+static void test_tl_flag_has_positional_multiple(void) {
+    char *argv[] = {"program", "remote", "add", "origin", "--verbose"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_positional("remote"));
+    TEST_ASSERT_TRUE(tl_flag_has_positional("add"));
+    TEST_ASSERT_TRUE(tl_flag_has_positional("origin"));
+    TEST_ASSERT_FALSE(tl_flag_has_positional("--verbose"));
+}
+
+static void test_tl_flag_has_positional_after_terminator(void) {
+    char *argv[] = {"program", "cmd", "--", "--foo", "bar"};
+    tl_flag_parse_args(5, argv);
+    TEST_ASSERT_TRUE(tl_flag_has_positional("cmd"));
+    TEST_ASSERT_TRUE(tl_flag_has_positional("--foo"));
+    TEST_ASSERT_TRUE(tl_flag_has_positional("bar"));
+}
+
+static void test_tl_flag_has_positional_none(void) {
+    char *argv[] = {"program", "--flag"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_positional("anything"));
+}
+
+static void test_tl_flag_has_positional_null(void) {
+    char *argv[] = {"program", "cmd"};
+    tl_flag_parse_args(2, argv);
+    TEST_ASSERT_FALSE(tl_flag_has_positional(NULL));
+}
+
+int main(void) {
+    UNITY_BEGIN();
+
+    RUN_TEST(test_tl_flag_parse_args);
+    RUN_TEST(test_tl_flag_has_flag);
+    RUN_TEST(test_tl_flag_get_value);
+    RUN_TEST(test_tl_flag_get_value_space);
+    RUN_TEST(test_tl_flag_exact_match);
+    RUN_TEST(test_tl_flag_parse_args_repeated_flag_equals);
+    RUN_TEST(test_tl_flag_parse_args_repeated_flag_mixed);
+    RUN_TEST(test_tl_flag_parse_args_repeated_boolean_flag);
+    RUN_TEST(test_tl_flag_parse_args_adjacent_space_flags);
+    RUN_TEST(test_tl_flag_parse_args_space_flag_trailing_boolean);
+    RUN_TEST(test_tl_flag_parse_args_positional_terminator);
+    RUN_TEST(test_tl_flag_parse_args_positional_interleaved);
+    RUN_TEST(test_tl_flag_parse_args_quoted_value_from_argv);
+    RUN_TEST(test_tl_flag_parse_line_quoted);
+    RUN_TEST(test_tl_flag_parse_line_escape);
+    RUN_TEST(test_tl_flag_parse_line_full);
+    RUN_TEST(test_tl_flag_parse_line_unterminated);
+    RUN_TEST(test_tl_flag_parse_line_null);
+    RUN_TEST(test_tl_flag_parse_args_short_flag);
+    RUN_TEST(test_tl_flag_parse_args_short_flag_value);
+    RUN_TEST(test_tl_flag_parse_args_short_flag_equals);
+    RUN_TEST(test_tl_flag_parse_args_bare_dash_is_positional);
+    RUN_TEST(test_tl_flag_parse_args_short_flag_exact_match);
+    RUN_TEST(test_tl_flag_parse_args_short_repeated_boolean);
+    RUN_TEST(test_tl_flag_parse_args_short_repeated_mixed);
+    RUN_TEST(test_tl_flag_parse_args_short_adjacent);
+    RUN_TEST(test_tl_flag_parse_args_short_trailing_boolean);
+    RUN_TEST(test_tl_flag_parse_args_short_value_is_bare_dash);
+    RUN_TEST(test_tl_flag_parse_args_short_long_mixed);
+    RUN_TEST(test_tl_flag_parse_args_short_followed_by_long);
+    RUN_TEST(test_tl_flag_parse_args_positional_dashdash_trailing_empty);
+    RUN_TEST(test_tl_flag_parse_args_positional_second_dashdash_is_positional);
+    RUN_TEST(test_tl_flag_parse_args_positional_mixed_short_long);
+    RUN_TEST(test_tl_flag_parse_args_positional_only);
+    RUN_TEST(test_tl_flag_parse_args_positional_dashdash_only);
+    RUN_TEST(test_tl_flag_parse_line_quoted_positional);
+    RUN_TEST(test_tl_flag_parse_args_long_empty_value);
+    RUN_TEST(test_tl_flag_parse_args_long_value_contains_equals);
+    RUN_TEST(test_tl_flag_parse_args_long_space_value_before_terminator);
+    RUN_TEST(test_tl_flag_parse_args_short_empty_value);
+    RUN_TEST(test_tl_flag_parse_args_short_multichar_name);
+    RUN_TEST(test_tl_flag_parse_args_terminator_at_start);
+    RUN_TEST(test_tl_flag_parse_args_null_flag_argument);
+    RUN_TEST(test_tl_flag_parse_args_empty_argv);
+    RUN_TEST(test_tl_flag_parse_args_reparse_clears_previous);
+    RUN_TEST(test_tl_flag_parse_args_reparse_line_after_args);
+    RUN_TEST(test_tl_flag_free_args_idempotent);
+    RUN_TEST(test_tl_flag_count_flag_absent);
+    RUN_TEST(test_tl_flag_parse_line_empty);
+    RUN_TEST(test_tl_flag_parse_line_whitespace_only);
+    RUN_TEST(test_tl_flag_parse_line_program_only);
+    RUN_TEST(test_tl_flag_parse_line_multiple_spaces);
+    RUN_TEST(test_tl_flag_parse_line_empty_quoted_value);
+    RUN_TEST(test_tl_flag_parse_line_escaped_space);
+    RUN_TEST(test_tl_flag_parse_line_trailing_backslash);
+    RUN_TEST(test_tl_flag_parse_line_double_backslash);
+    RUN_TEST(test_tl_flag_parse_args_negative_number_value);
+    RUN_TEST(test_tl_flag_get_arg_index_returns_argv_index);
+    RUN_TEST(test_tl_flag_get_arg_index_after_starts_after_given_index);
+    RUN_TEST(test_tl_flag_get_arg_index_after_missing_name_returns_not_found);
+    RUN_TEST(test_tl_flag_public_type_accepts_tl_flag);
+    RUN_TEST(test_tl_flag_parse_args_with_options_null_options_uses_default_parsing);
+    RUN_TEST(test_tl_flag_parse_args_with_options_empty_options_uses_default_parsing);
+    RUN_TEST(test_tl_flag_parse_args_with_options_bool_flag_keeps_positional);
+    RUN_TEST(test_tl_flag_parse_args_range_bool_before_positional);
+    RUN_TEST(test_tl_flag_parse_args_range_bool_after_positional);
+    RUN_TEST(test_tl_flag_parse_args_range_value_flag_space);
+    RUN_TEST(test_tl_flag_parse_args_range_value_flag_equals);
+    RUN_TEST(test_tl_flag_parse_args_range_value_flag_without_value_returns_error);
+    RUN_TEST(test_tl_flag_parse_args_range_dash_value_requires_equals);
+    RUN_TEST(test_tl_flag_parse_args_range_unknown_flag_returns_error);
+    RUN_TEST(test_tl_flag_parse_args_range_conflicting_flag_returns_error);
+    RUN_TEST(test_tl_flag_parse_args_range_invalid_bounds_returns_error);
+    RUN_TEST(test_tl_flag_parse_args_range_invalid_range_clears_previous_state);
+    RUN_TEST(test_tl_flag_parse_args_range_empty_range_returns_ok);
+    RUN_TEST(test_tl_flag_parse_args_range_empty_range_clears_previous_state);
+    RUN_TEST(test_tl_flag_parse_args_range_can_include_argv_zero);
+    RUN_TEST(test_tl_flag_parse_args_range_terminator_keeps_positionals);
+    RUN_TEST(test_tl_flag_parse_args_null_argv);
+    RUN_TEST(test_tl_flag_has_positional);
+    RUN_TEST(test_tl_flag_has_positional_multiple);
+    RUN_TEST(test_tl_flag_has_positional_after_terminator);
+    RUN_TEST(test_tl_flag_has_positional_none);
+    RUN_TEST(test_tl_flag_has_positional_null);
+
+    return UNITY_END();
+}

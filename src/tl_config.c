@@ -8,25 +8,24 @@
  */
 static int debug_level = 0;
 
-int tl_get_debug_level() {
+int tl_config_get_debug_level() {
     return debug_level;
 }
 
-bool tl_set_debug_level(int level) {
+void tl_config_set_debug_level(int level) {
     debug_level = level;
-    return true;
 }
 
-bool tl_neon_available() {
-#if TL_NEON_AVAILABLE
+bool tl_config_has_neon() {
+#if TL_HAS_NEON
     return true;
 #else
     return false;
 #endif
 }
 
-bool tl_cmsis_dsp_available() {
-#if TL_CMSIS_DSP_AVAILABLE
+bool tl_config_has_cmsis_dsp() {
+#if TL_HAS_CMSIS_DSP
     return true;
 #else
     return false;
