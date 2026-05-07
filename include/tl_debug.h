@@ -16,10 +16,10 @@
  *
  * @return void
  */
-#define TL_DEBUG_PRINT(level, fmt, ...)          \
-    do {                                         \
-        if (tl_get_debug_level() >= level)       \
-            fprintf(stderr, fmt, ##__VA_ARGS__); \
+#define TL_DEBUG_PRINT(level, fmt, ...)           \
+    do {                                          \
+        if (tl_config_get_debug_level() >= level) \
+            fprintf(stderr, fmt, ##__VA_ARGS__);  \
     } while (0)
 
 #endif // TL_DEBUG_H

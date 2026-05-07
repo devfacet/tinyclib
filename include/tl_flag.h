@@ -79,7 +79,7 @@ typedef enum {
  *
  * @return The argv index, or TL_ARG_NOT_FOUND when not found.
  */
-size_t tl_arg_index(int argc, char *argv[], const char *name);
+size_t tl_flag_get_arg_index(int argc, char *argv[], const char *name);
 
 /**
  * @brief Returns the first argv index matching the given name after an index.
@@ -93,13 +93,13 @@ size_t tl_arg_index(int argc, char *argv[], const char *name);
  *
  * @return The argv index, or TL_ARG_NOT_FOUND when not found.
  */
-size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index);
+size_t tl_flag_get_arg_index_after(int argc, char *argv[], const char *name, size_t index);
 
 /**
  * @brief Parses the given command line arguments with options.
  *
  * Default parsing is used when options is NULL or both option lists are NULL.
- * With default parsing this behaves like tl_parse_args. Strict mode is enabled
+ * With default parsing this behaves like tl_flag_parse_args. Strict mode is enabled
  * when either option list is non-NULL.
  *
  * @param argc The number of command line arguments.
@@ -108,7 +108,8 @@ size_t tl_arg_index_after(int argc, char *argv[], const char *name, size_t index
  *
  * @return TL_PARSE_OK on success, or a negative parse error.
  */
-TlParseResult tl_parse_args_ex(int argc, char *argv[], const TlParseOptions *options);
+TlParseResult tl_flag_parse_args_with_options(int argc, char *argv[],
+                                              const TlParseOptions *options);
 
 /**
  * @brief Parses an explicit argv range.
@@ -125,8 +126,8 @@ TlParseResult tl_parse_args_ex(int argc, char *argv[], const TlParseOptions *opt
  *
  * @return TL_PARSE_OK on success, or a negative parse error.
  */
-TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
-                                  const TlParseOptions *options);
+TlParseResult tl_flag_parse_args_range(int argc, char *argv[], size_t start_index, size_t end_index,
+                                       const TlParseOptions *options);
 
 /**
  * @brief Parses the given command line arguments.
@@ -143,7 +144,7 @@ TlParseResult tl_parse_args_range(int argc, char *argv[], size_t start_index, si
  *
  * @return TL_PARSE_OK on success, or a negative parse error.
  */
-TlParseResult tl_parse_args(int argc, char *argv[]);
+TlParseResult tl_flag_parse_args(int argc, char *argv[]);
 
 /**
  * @brief Parses a raw command line string.
@@ -156,17 +157,17 @@ TlParseResult tl_parse_args(int argc, char *argv[]);
  *
  * @return TL_PARSE_OK on success, or a negative parse error.
  */
-TlParseResult tl_parse_line(const char *line);
+TlParseResult tl_flag_parse_line(const char *line);
 
 /**
  * @brief Releases memory held by the argument parser.
  *
  * Safe to call when nothing has been parsed. Called implicitly by
- * tl_parse_args and tl_parse_line.
+ * tl_flag_parse_args and tl_flag_parse_line.
  *
  * @return void
  */
-void tl_free_args(void);
+void tl_flag_free_args(void);
 
 /**
  * @brief Looks up a specific flag.
@@ -175,19 +176,19 @@ void tl_free_args(void);
  *
  * @return true if the flag is found, false otherwise.
  */
-bool tl_lookup_flag(const char *flag);
+bool tl_flag_has_flag(const char *flag);
 
 /**
  * @brief Returns the value of a specific flag.
  *
  * Returns the value of the first occurrence of flag. For repeated flags
- * use tl_count_flag and tl_get_flag_at.
+ * use tl_flag_count_flag and tl_flag_get_value_at.
  *
  * @param flag The flag to get.
  *
  * @return The value of the flag, or NULL if not found or no value.
  */
-const char *tl_get_flag(const char *flag);
+const char *tl_flag_get_value(const char *flag);
 
 /**
  * @brief Returns the number of times a flag was given.
@@ -196,7 +197,7 @@ const char *tl_get_flag(const char *flag);
  *
  * @return The occurrence count (0 if not given).
  */
-size_t tl_count_flag(const char *flag);
+size_t tl_flag_count_flag(const char *flag);
 
 /**
  * @brief Returns the value of a repeated flag at a given index.
@@ -208,7 +209,7 @@ size_t tl_count_flag(const char *flag);
  *
  * @return The value, or NULL if out of range or no value at that index.
  */
-const char *tl_get_flag_at(const char *flag, size_t index);
+const char *tl_flag_get_value_at(const char *flag, size_t index);
 
 /**
  * @brief Looks up a specific positional argument by value.
@@ -217,7 +218,7 @@ const char *tl_get_flag_at(const char *flag, size_t index);
  *
  * @return true if the positional is found, false otherwise.
  */
-bool tl_lookup_positional(const char *value);
+bool tl_flag_has_positional(const char *value);
 
 /**
  * @brief Returns the number of positional arguments.
@@ -227,7 +228,7 @@ bool tl_lookup_positional(const char *value);
  *
  * @return The positional argument count.
  */
-size_t tl_count_positional(void);
+size_t tl_flag_count_positional(void);
 
 /**
  * @brief Returns the positional argument at the given index.
@@ -236,6 +237,6 @@ size_t tl_count_positional(void);
  *
  * @return The positional value, or NULL if out of range.
  */
-const char *tl_get_positional(size_t index);
+const char *tl_flag_get_positional(size_t index);
 
 #endif // TL_FLAG_H

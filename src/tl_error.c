@@ -6,14 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-void tl_error_set(TLError *error, TLErrorCode code, const char *message, ...) {
-    // Ignore if error is NULL
+int tl_error_set_message(TlError *error, TlErrorCode code, ...) {
     if (!error) {
-        return;
+        return TL_ERROR_INVALID_ARGUMENT;
     }
 
-    // Set error code and message
+    // Set error code
     error->code = code;
+
     // Clear previous error message
     if (error->message) {
         free((void *)error->message);
@@ -22,24 +22,30 @@ void tl_error_set(TLError *error, TLErrorCode code, const char *message, ...) {
     }
 
     // Set message if provided
+    va_list args;
+    va_start(args, code);
+    const char *message = va_arg(args, const char *);
     if (message) {
-        va_list args;
-        va_start(args, message);
-        int size = vsnprintf(NULL, 0, message, args);
-        va_end(args);
+        va_list format_args;
+        va_copy(format_args, args);
+        int size = vsnprintf(NULL, 0, message, format_args);
+        va_end(format_args);
 
         if (size < 0) {
-            return; // ignore if vsnprintf fails
+            va_end(args);
+            return TL_ERROR_INTERNAL;
         }
 
         error->message = malloc(size + 1); // include null terminator by adding 1
         if (!error->message) {
-            return; // ignore if malloc fails
+            va_end(args);
+            return TL_ERROR_MEMORY_ALLOCATION;
         }
         error->message_size = size + 1;
 
-        va_start(args, message);
         vsnprintf((char *)error->message, error->message_size, message, args);
-        va_end(args);
     }
+    va_end(args);
+
+    return TL_ERROR_NONE;
 }

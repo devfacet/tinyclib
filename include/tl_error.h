@@ -30,7 +30,7 @@ typedef enum {
     TL_ERROR_INVALID_SIZE        = 36, // invalid size
     TL_ERROR_INVALID_TYPE        = 37, // invalid type
     TL_ERROR_INVALID_VALUE       = 38, // invalid value
-} TLErrorCode;
+} TlErrorCode;
 
 /**
  * @brief Represents an error.
@@ -40,21 +40,20 @@ typedef enum {
  * @param message The error message.
  */
 typedef struct {
-    TLErrorCode code;
+    TlErrorCode code;
     size_t      message_size;
     const char *message;
-} TLError;
+} TlError;
 
 /**
  * @brief Sets the error with the given code and message.
  *
  * @param error The error to set.
  * @param code The error code.
- * @param message The error message.
- * @param ... The arguments for the formatted message.
+ * @param ... The error message followed by the formatted message arguments.
  *
- * @return void
+ * @return TL_ERROR_NONE on success, or an error code on failure.
  */
-void tl_error_set(TLError *error, TLErrorCode code, const char *message, ...);
+int tl_error_set_message(TlError *error, TlErrorCode code, ...);
 
 #endif // TL_ERROR_H

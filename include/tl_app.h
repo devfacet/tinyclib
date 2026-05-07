@@ -11,6 +11,6 @@
  *
  * @return void
  */
-void tl_init_app(int argc, char *argv[]);
+void tl_app_init(int argc, char *argv[]);
 
 #endif // TL_APP_H

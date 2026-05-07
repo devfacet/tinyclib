@@ -5,9 +5,9 @@
 #include "tl_flag.h"
 #include <stdlib.h>
 
-void tl_init_app(int argc, char *argv[]) {
-    tl_parse_args(argc, argv);
-    if (tl_get_flag("--debug-level")) {
-        tl_set_debug_level((int)strtol(tl_get_flag("--debug-level"), NULL, 10));
+void tl_app_init(int argc, char *argv[]) {
+    tl_flag_parse_args(argc, argv);
+    if (tl_flag_get_value("--debug-level")) {
+        tl_config_set_debug_level((int)strtol(tl_flag_get_value("--debug-level"), NULL, 10));
     }
 }
