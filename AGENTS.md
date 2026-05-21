@@ -116,14 +116,21 @@ from server-grade hardware to desktops, mobile, and embedded devices.
   `## Out of Scope` sections, in that order, so a reader can understand what the
   plan is about and what it deliberately excludes without reading the whole
   document. If the plan has unresolved design questions, follow those three
-  sections with an `## Open Questions` section. And add a `## Recommendations`
-  section before any other content
+  sections with an `## Open Questions` section. In `## Open Questions`, use
+  numbered questions and put an indented `Recommendation:` line under each
+  question. Also add a separate `## Recommendations` section if any before any
+  other content.
+- When asked to check a plan file for consistency or correctness, use a
+  two-phase workflow: first perform a read-only audit by inspecting the plan,
+  related code, documentation and project rules, identifying what may need to
+  change and why while making no edits; then perform a fix pass by patching all
+  confirmed issues together.
 - Do not suppress formatter, linter and checker warnings without asking first.
 - Do not remove tests without asking first. Do not cause regressions in existing
   tests without asking first.
 - When you are creating CMakeLists.txt files for new folders, follow the
   existing patterns, structure and naming conventions.
-- Do not create common or utility files without asking first.
+- Do not create generic common or utility files without asking first.
 - Do not add `_internal`, `_private`, `_impl`, or similar suffixes to files,
   types, or functions - the directory already carries that signal. Prefer
   specific, descriptive filenames (e.g. `client.c`, `request.c`) over generic
@@ -202,8 +209,9 @@ from server-grade hardware to desktops, mobile, and embedded devices.
 
 ## References
 
-- [Unity](https://github.com/ThrowTheSwitch/Unity.git) See `tmp/unity` folder
-  for a local copy of the source and documentation.
+- [Unity](https://github.com/ThrowTheSwitch/Unity.git) See
+  `tmp/third_party/unity` folder for a local copy of the source and
+  documentation.
 
 ## Design Notes
 
